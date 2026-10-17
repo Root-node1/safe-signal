@@ -5,15 +5,18 @@ import DetailsScreen from './screens/DetailsScreen'
 import NextStepScreen from './screens/NextStepScreen'
 import ConfirmationScreen from './screens/ConfirmationScreen'
 import AdminScreen from './screens/AdminScreen'
+import { buildPayload, createReport } from './lib/api'
+import { PROTOTYPE } from './lib/prototype'
+import { newReferenceCode } from './lib/referenceCode'
 import type { Details, IncidentType, NextChoice, Timing } from './types'
 
-// State only. Nothing is persisted anywhere.
+// State only. Nothing is persisted in the browser.
 type Screen =
   | { name: 'landing' }
   | { name: 'incident'; timing: Timing }
   | { name: 'details'; timing: Timing; incident: IncidentType }
   | { name: 'next-step'; timing: Timing; incident: IncidentType; details: Details }
-  | { name: 'confirmation'; choice: NextChoice }
+  | { name: 'confirmation'; choice: NextChoice; code: string; saved: boolean }
 
 function useHash(): string {
   const [hash, setHash] = useState(() => window.location.hash)
@@ -68,16 +71,27 @@ function App() {
   }
 
   if (screen.name === 'next-step') {
+    const { timing, incident, details } = screen
     return (
       <NextStepScreen
-        onSubmit={(choice) => setScreen({ name: 'confirmation', choice })}
-        onBack={() =>
-          setScreen({
-            name: 'details',
-            timing: screen.timing,
-            incident: screen.incident,
-          })
-        }
+        onSubmit={async (choice) => {
+          try {
+            const { code } = await createReport(
+              buildPayload(timing, incident, details, choice),
+            )
+            setScreen({ name: 'confirmation', choice, code, saved: true })
+          } catch (err) {
+            // A real build must never show a code that was not saved.
+            if (!PROTOTYPE) throw err
+            setScreen({
+              name: 'confirmation',
+              choice,
+              code: newReferenceCode(),
+              saved: false,
+            })
+          }
+        }}
+        onBack={() => setScreen({ name: 'details', timing, incident })}
       />
     )
   }
@@ -85,6 +99,8 @@ function App() {
   return (
     <ConfirmationScreen
       choice={screen.choice}
+      code={screen.code}
+      saved={screen.saved}
       onRestart={() => setScreen({ name: 'landing' })}
     />
   )

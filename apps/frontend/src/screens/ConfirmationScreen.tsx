@@ -2,12 +2,13 @@ import { useState } from 'react'
 import Shell from '../components/Shell'
 import { PROTOTYPE } from '../lib/prototype'
 import { quickExit } from '../lib/quickExit'
-import { newReferenceCode } from '../lib/referenceCode'
 import { SUPPORT_RESOURCES } from '../lib/support'
 import type { NextChoice } from '../types'
 
 type Props = {
   choice: NextChoice
+  code: string
+  saved: boolean
   onRestart: () => void
 }
 
@@ -29,9 +30,7 @@ function whatHappens(choice: NextChoice): string {
   }
 }
 
-export default function ConfirmationScreen({ choice, onRestart }: Props) {
-  // Generated once per visit. Never stored.
-  const [code] = useState(() => newReferenceCode())
+export default function ConfirmationScreen({ choice, code, saved, onRestart }: Props) {
   const [copyStatus, setCopyStatus] = useState<CopyStatus>('idle')
 
   const copy = async () => {
@@ -95,8 +94,9 @@ export default function ConfirmationScreen({ choice, onRestart }: Props) {
 
       {PROTOTYPE && (
         <p className="mt-4 text-[14px] leading-5 text-[#4A5259]">
-          Prototype mode: nothing was sent or stored, and this code can't be
-          looked up later.
+          {saved
+            ? 'Prototype mode: saved to the test server. Nothing was sent to anyone.'
+            : "Prototype mode: the test server wasn't reachable, so nothing was saved and this code can't be looked up."}
         </p>
       )}
 

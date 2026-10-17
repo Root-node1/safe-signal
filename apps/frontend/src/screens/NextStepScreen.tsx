@@ -15,7 +15,7 @@ const STEPS: StepOption[] = [
 ]
 
 type Props = {
-  onSubmit: (choice: NextChoice) => void
+  onSubmit: (choice: NextChoice) => Promise<void>
   onBack: () => void
 }
 
@@ -27,21 +27,30 @@ export default function NextStepScreen({ onSubmit, onBack }: Props) {
   const [name, setName] = useState('')
   const [phone, setPhone] = useState('')
   const [touched, setTouched] = useState(false)
+  const [submitting, setSubmitting] = useState(false)
+  const [failed, setFailed] = useState(false)
 
   const needsContact = step === 'trusted-contact' || step === 'check-in'
   const phoneOk = isValidKenyanPhone(phone)
   const canSubmit = step !== null && (!needsContact || phoneOk)
 
-  const submit = () => {
-    if (!step) return
+  const submit = async () => {
+    if (!step || submitting) return
     if (needsContact && !phoneOk) {
       setTouched(true)
       return
     }
-    onSubmit({
-      step,
-      contact: needsContact ? { name: name.trim(), phone: phone.trim() } : null,
-    })
+    setFailed(false)
+    setSubmitting(true)
+    try {
+      await onSubmit({
+        step,
+        contact: needsContact ? { name: name.trim(), phone: phone.trim() } : null,
+      })
+    } catch {
+      setFailed(true)
+      setSubmitting(false)
+    }
   }
 
   return (
@@ -66,6 +75,7 @@ export default function NextStepScreen({ onSubmit, onBack }: Props) {
               type="button"
               role="radio"
               aria-checked={selected}
+              disabled={submitting}
               onClick={() => {
                 setStep(s.id)
                 setTouched(false)
@@ -159,18 +169,28 @@ export default function NextStepScreen({ onSubmit, onBack }: Props) {
 
       <div className="flex-1" />
 
+      {failed && (
+        <div
+          role="alert"
+          className="mt-6 rounded-xl border-2 border-[#1B1F23] px-4 py-3 text-[15px] leading-[22px]"
+        >
+          That didn't go through. Please try again.
+        </div>
+      )}
+
       <button
         type="button"
         onClick={submit}
-        disabled={!canSubmit}
+        disabled={!canSubmit || submitting}
         className="mt-8 min-h-[60px] w-full rounded-2xl bg-[#0F5C5C] px-6 text-[22px] font-semibold leading-7 text-white focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#1B1F23] focus-visible:ring-offset-2 active:brightness-90 disabled:opacity-50"
       >
-        Submit
+        {submitting ? 'Sending…' : 'Submit'}
       </button>
 
       <button
         type="button"
         onClick={onBack}
+        disabled={submitting}
         className="mt-4 min-h-[44px] self-start px-1 text-[17px] font-medium leading-6 text-[#0F5C5C] underline underline-offset-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0F5C5C]"
       >
         Back
