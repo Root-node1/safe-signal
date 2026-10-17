@@ -1,9 +1,10 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import LandingScreen from './screens/LandingScreen'
 import IncidentTypeScreen from './screens/IncidentTypeScreen'
 import DetailsScreen from './screens/DetailsScreen'
 import NextStepScreen from './screens/NextStepScreen'
 import ConfirmationScreen from './screens/ConfirmationScreen'
+import AdminScreen from './screens/AdminScreen'
 import type { Details, IncidentType, NextChoice, Timing } from './types'
 
 // State only. Nothing is persisted anywhere.
@@ -14,8 +15,22 @@ type Screen =
   | { name: 'next-step'; timing: Timing; incident: IncidentType; details: Details }
   | { name: 'confirmation'; choice: NextChoice }
 
+function useHash(): string {
+  const [hash, setHash] = useState(() => window.location.hash)
+  useEffect(() => {
+    const onChange = () => setHash(window.location.hash)
+    window.addEventListener('hashchange', onChange)
+    return () => window.removeEventListener('hashchange', onChange)
+  }, [])
+  return hash
+}
+
 function App() {
+  const hash = useHash()
   const [screen, setScreen] = useState<Screen>({ name: 'landing' })
+
+  // Admin is reached by URL only (/#admin). It is never linked from the public flow.
+  if (hash === '#admin') return <AdminScreen />
 
   if (screen.name === 'landing') {
     return (
