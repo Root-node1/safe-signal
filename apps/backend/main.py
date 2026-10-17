@@ -20,8 +20,9 @@ async def analyze(report: Report):
     }
 
 # --- SafeSignal reports API ---
-from fastapi.middleware.cors import CORSMiddleware  # noqa: E402
-from reports import router as reports_router  # noqa: E402
+from fastapi.middleware.cors import CORSMiddleware
+
+from reports import router as reports_router
 
 app.add_middleware(
     CORSMiddleware,

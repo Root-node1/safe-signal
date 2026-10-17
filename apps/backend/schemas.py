@@ -1,4 +1,4 @@
-from typing import Literal, Optional
+from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 from pydantic.alias_generators import to_camel
@@ -45,7 +45,7 @@ class ReportOut(CamelModel):
     consent_to_share: bool
     status: Status
     created_at: int
-    acknowledged_at: Optional[int] = None
+    acknowledged_at: int | None = None
 
 
 class StatusIn(CamelModel):
