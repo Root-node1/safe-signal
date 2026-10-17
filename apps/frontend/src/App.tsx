@@ -1,9 +1,9 @@
 import { useState } from 'react'
-import Shell from './components/Shell'
 import LandingScreen from './screens/LandingScreen'
 import IncidentTypeScreen from './screens/IncidentTypeScreen'
 import DetailsScreen from './screens/DetailsScreen'
 import NextStepScreen from './screens/NextStepScreen'
+import ConfirmationScreen from './screens/ConfirmationScreen'
 import type { Details, IncidentType, NextChoice, Timing } from './types'
 
 // State only. Nothing is persisted anywhere.
@@ -12,13 +12,7 @@ type Screen =
   | { name: 'incident'; timing: Timing }
   | { name: 'details'; timing: Timing; incident: IncidentType }
   | { name: 'next-step'; timing: Timing; incident: IncidentType; details: Details }
-  | {
-      name: 'confirmation'
-      timing: Timing
-      incident: IncidentType
-      details: Details
-      choice: NextChoice
-    }
+  | { name: 'confirmation'; choice: NextChoice }
 
 function App() {
   const [screen, setScreen] = useState<Screen>({ name: 'landing' })
@@ -61,15 +55,7 @@ function App() {
   if (screen.name === 'next-step') {
     return (
       <NextStepScreen
-        onSubmit={(choice) =>
-          setScreen({
-            name: 'confirmation',
-            timing: screen.timing,
-            incident: screen.incident,
-            details: screen.details,
-            choice,
-          })
-        }
+        onSubmit={(choice) => setScreen({ name: 'confirmation', choice })}
         onBack={() =>
           setScreen({
             name: 'details',
@@ -81,15 +67,11 @@ function App() {
     )
   }
 
-  // Placeholder until Screen 5 (confirmation + reference code) is built.
   return (
-    <Shell>
-      <h1 className="text-[28px] font-bold leading-[34px]">Next: confirmation</h1>
-      <p className="mt-2 text-[18px] leading-[26px] text-[#4A5259]">
-        {screen.incident} / {screen.choice.step}
-        {screen.choice.contact ? ` / ${screen.choice.contact.phone}` : ''}
-      </p>
-    </Shell>
+    <ConfirmationScreen
+      choice={screen.choice}
+      onRestart={() => setScreen({ name: 'landing' })}
+    />
   )
 }
 
