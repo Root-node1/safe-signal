@@ -3,7 +3,8 @@ import Shell from './components/Shell'
 import LandingScreen from './screens/LandingScreen'
 import IncidentTypeScreen from './screens/IncidentTypeScreen'
 import DetailsScreen from './screens/DetailsScreen'
-import type { Details, IncidentType, Timing } from './types'
+import NextStepScreen from './screens/NextStepScreen'
+import type { Details, IncidentType, NextChoice, Timing } from './types'
 
 // State only. Nothing is persisted anywhere.
 type Screen =
@@ -11,6 +12,13 @@ type Screen =
   | { name: 'incident'; timing: Timing }
   | { name: 'details'; timing: Timing; incident: IncidentType }
   | { name: 'next-step'; timing: Timing; incident: IncidentType; details: Details }
+  | {
+      name: 'confirmation'
+      timing: Timing
+      incident: IncidentType
+      details: Details
+      choice: NextChoice
+    }
 
 function App() {
   const [screen, setScreen] = useState<Screen>({ name: 'landing' })
@@ -50,28 +58,37 @@ function App() {
     )
   }
 
-  // Placeholder until Screen 4 is built.
-  return (
-    <Shell>
-      <h1 className="text-[28px] font-bold leading-[34px]">Next: your options</h1>
-      <p className="mt-2 text-[18px] leading-[26px] text-[#4A5259]">
-        {screen.incident} / {screen.timing}
-        {screen.details.route ? ` / ${screen.details.route}` : ''}
-        {screen.details.location ? ' / location added' : ''}
-      </p>
-      <button
-        type="button"
-        onClick={() =>
+  if (screen.name === 'next-step') {
+    return (
+      <NextStepScreen
+        onSubmit={(choice) =>
+          setScreen({
+            name: 'confirmation',
+            timing: screen.timing,
+            incident: screen.incident,
+            details: screen.details,
+            choice,
+          })
+        }
+        onBack={() =>
           setScreen({
             name: 'details',
             timing: screen.timing,
             incident: screen.incident,
           })
         }
-        className="mt-6 min-h-[44px] self-start px-1 text-[17px] font-medium leading-6 text-[#0F5C5C] underline underline-offset-4"
-      >
-        Back
-      </button>
+      />
+    )
+  }
+
+  // Placeholder until Screen 5 (confirmation + reference code) is built.
+  return (
+    <Shell>
+      <h1 className="text-[28px] font-bold leading-[34px]">Next: confirmation</h1>
+      <p className="mt-2 text-[18px] leading-[26px] text-[#4A5259]">
+        {screen.incident} / {screen.choice.step}
+        {screen.choice.contact ? ` / ${screen.choice.contact.phone}` : ''}
+      </p>
     </Shell>
   )
 }

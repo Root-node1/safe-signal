@@ -26,3 +26,10 @@ export const EMPTY_DETAILS: Details = {
   where: '',
   location: null,
 }
+
+export type NextStep = 'private' | 'trusted-contact' | 'check-in' | 'support'
+
+export type Contact = { name: string; phone: string }
+
+// contact is the trusted person (trusted-contact) or her own number (check-in).
+export type NextChoice = { step: NextStep; contact: Contact | null }
