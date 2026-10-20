@@ -50,8 +50,29 @@ ThemeData buildSafeSignalTheme() {
         fontWeight: FontWeight.w700,
         color: SafeSignalColors.ocean,
       ),
+      labelLarge: TextStyle(
+        fontWeight: FontWeight.w700,
+        color: SafeSignalColors.teal,
+      ),
       bodyLarge: TextStyle(height: 1.5, color: SafeSignalColors.textMuted),
       bodyMedium: TextStyle(height: 1.5, color: SafeSignalColors.textMuted),
+    ),
+    inputDecorationTheme: InputDecorationTheme(
+      filled: true,
+      fillColor: Colors.white,
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: SafeSignalColors.border),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: SafeSignalColors.border),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: SafeSignalColors.teal, width: 2.5),
+      ),
+      labelStyle: const TextStyle(color: SafeSignalColors.textMuted),
     ),
     filledButtonTheme: FilledButtonThemeData(
       style: FilledButton.styleFrom(

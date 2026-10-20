@@ -10,7 +10,7 @@ Status: prototype under active development. It has not been deployed, security-a
 - Quick Exit (Escape key or Exit button) that leaves the app for a neutral page.
 - FastAPI backend that stores reports in memory (development) or PostgreSQL (persistent), with idempotent submission, rate limiting and a key-protected admin API.
 - A guidance assistant, served through the backend (OpenRouter), with redaction of obvious identifiers and fixed emergency wording.
-- A minimal Flutter Android app: a branded welcome screen only.
+- A Flutter Android app with a local-only reporting walkthrough (home, report, support option, review, confirmation, and a Quick Exit button). It sends nothing and saves nothing; it is not connected to the backend.
 
 ## What it does not do
 
@@ -18,7 +18,7 @@ Status: prototype under active development. It has not been deployed, security-a
 - It does not verify, corroborate or review reports, and it shows no live alerts, maps or incident counts.
 - It cannot tell users whether a route, vehicle or stage is safe.
 - The admin screen in the web app shows mock data only; there is no real admin dashboard or sign-in.
-- The Flutter app does not report incidents and is not connected to the backend.
+- The Flutter app cannot submit reports: it is a local walkthrough, not connected to the backend, and it states this on screen.
 - No guarantee of anonymity or confidentiality is made.
 
 ## Repository layout
@@ -26,7 +26,7 @@ Status: prototype under active development. It has not been deployed, security-a
 ```
 apps/frontend   React + Vite + TypeScript + Tailwind CSS v4 web app
 apps/backend    FastAPI service, PostgreSQL store, migrations, tests
-apps/mobile     Flutter Android app (foundation only)
+apps/mobile     Flutter Android app (offline UI only)
 docs/           Architecture, development, API, security, roadmap, checklist
 ```
 

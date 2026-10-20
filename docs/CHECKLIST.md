@@ -17,7 +17,7 @@ Legend: `[x]` done with repository or test evidence; `[ ]` not done or unverifie
 - [x] Focus moved to the new heading and scroll reset on screen change (implemented; not browser-tested)
 - [x] Retry-safe submission with stable idempotency key (implemented; API behaviour tested in backend)
 - [ ] Browser verification at 320, 375, 768, 1024, 1440 px
-- [ ] Screen-reader and keyboard pass (device verification)
+- [ ] Screen-reader and keyboard pass on the web app (device verification)
 - [ ] Automated frontend tests
 - [ ] Update "temporary storage" copy once PostgreSQL is live
 - [ ] Real admin UI (current `/#admin` is mock data only)
@@ -64,11 +64,19 @@ Legend: `[x]` done with repository or test evidence; `[ ]` not done or unverifie
 
 ## 7. Flutter Android
 - [x] Project `apps/mobile`, id `com.safesignal.app`, Material 3 theme with SafeSignal palette
-- [x] Welcome screen with honest "coming soon" status
+- [x] Welcome screen with honest status
+- [x] M.1 offline reporting UI: home, report (incident type, timing, optional route/plate/SACCO/place), review, confirmation stating the report was NOT submitted (automated widget tests; not yet device-tested)
+- [x] M.1 constraints: no permissions, no storage, no logging of details, no network calls
 - [x] `flutter analyze`: no issues; `flutter test`: 2 pass
 - [x] Debug APK build succeeded (first build about 34 minutes; 144 MiB (150 MB); `apps/mobile/build/app/outputs/flutter-apk/app-debug.apk`; package `com.safesignal.app`, label SafeSignal, verified with aapt2; not installed or run anywhere)
-- [ ] Install and launch on a physical device (APK copied to Windows Downloads; install and launch not yet verified)
-- [ ] Reporting journey screens
+- [x] Debug APK rebuilt with M.1.5 (support step and Quick Exit): succeeded in about 36 s, 165 MB (157 MiB), same path, `com.safesignal.app`; not installed or run on a device yet
+- [x] Debug APK (M.1.5) installed and launched on a physical Android phone (developer-confirmed)
+- [x] Developer-confirmed device checks (8 of 8): reporting flow, navigation, support selection, review, Quick Exit, larger text, rotation, keyboard behaviour, TalkBack where available. This is manual developer testing, not a formal accessibility or security audit
+- [ ] Broader device coverage (more phones and Android versions) and formal accessibility review
+- [x] M.1.5 support-option step with the four API values (two unavailable, as on the web); selection kept on back navigation and shown on review (automated)
+- [x] M.1.5 Quick Exit button on report, options, review and confirmation screens: clears the in-memory draft and calls the Android close request (automated with a mocked platform channel; real Android behaviour not device-tested; does not clear recents, screenshots or system traces)
+- [ ] Swahili copy (not decided)
+- [ ] M.2: API client with idempotency keys, internet permission in release manifest, real submission and error states (pending)
 - [ ] API client with idempotency (not connected to backend)
 - [ ] Assistant screen
 - [ ] Android internet permission in release manifest (needed when networking is added)
@@ -77,7 +85,7 @@ Legend: `[x]` done with repository or test evidence; `[ ]` not done or unverifie
 ## 8. Automated testing
 - [x] Backend unit and API tests
 - [x] PostgreSQL integration tests (run locally only)
-- [x] Flutter widget tests (2)
+- [x] Flutter widget tests (14: navigation, validation, back-navigation data retention, review accuracy, confirmation wording, draft cleared on Done, 2x text scale)
 - [ ] Frontend tests
 - [ ] End-to-end test of the report journey
 - [ ] Load test of report and assistant endpoints
@@ -112,7 +120,7 @@ Legend: `[x]` done with repository or test evidence; `[ ]` not done or unverifie
 - [ ] Pilot plan and safeguards agreed
 
 ## Next priorities
-1. Install the debug APK on a physical device and check it launches (build confirmed; device test not done).
+1. M.2A: connect the Flutter app to the backend (see Flutter section; pending).
 2. Run the manual browser and accessibility pass on the web app.
 3. Add a PostgreSQL service to CI so the integration tests run on every push.
 4. Decide admin authentication and the retention policy.

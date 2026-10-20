@@ -5,7 +5,7 @@
 | Component | Location | Status |
 |---|---|---|
 | Web client (React) | `apps/frontend` | Implemented; talks to the API |
-| Android client (Flutter) | `apps/mobile` | Welcome screen only; no API calls |
+| Android client (Flutter) | `apps/mobile` | Offline reporting walkthrough (M.1); no API calls, no storage |
 | API (FastAPI) | `apps/backend` | Implemented |
 | Storage | in-memory or PostgreSQL | Both implemented |
 | Assistant | backend proxy to OpenRouter | Implemented; model id unverified |

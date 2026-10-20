@@ -1,10 +1,21 @@
 import 'package:flutter/material.dart';
 
+import '../models/report_draft.dart';
+import '../navigation.dart';
 import '../theme.dart';
+import 'report_screen.dart';
 
-/// Branded placeholder. Reporting is not built yet, and nothing here talks to a server.
 class WelcomeScreen extends StatelessWidget {
-  const WelcomeScreen({super.key});
+  const WelcomeScreen({super.key, required this.draft});
+
+  final ReportDraft draft;
+
+  void _start(BuildContext context, Timing timing) {
+    draft.timing = timing;
+    Navigator.of(context).push(
+      appRoute<void>(context, (_) => ReportScreen(draft: draft)),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -27,71 +38,99 @@ class WelcomeScreen extends StatelessWidget {
                 Semantics(
                   header: true,
                   child: Text(
-                    'Welcome to SafeSignal',
+                    'Report an incident',
                     style: text.headlineMedium,
                   ),
                 ),
                 const SizedBox(height: 12),
                 Text(
-                  'A way for matatu and boda-boda commuters in Kenya to '
-                  'report safety incidents.',
+                  'SafeSignal helps matatu and boda-boda commuters in Kenya '
+                  'write down a safety incident. No account is needed, and '
+                  'every detail except what happened is optional.',
                   style: text.bodyLarge,
                 ),
                 const SizedBox(height: 24),
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: SafeSignalColors.amberSubtle,
-                    border: Border.all(color: SafeSignalColors.amber),
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'Coming soon',
-                        style: TextStyle(
-                          fontWeight: FontWeight.w700,
-                          color: SafeSignalColors.amberDark,
-                        ),
-                      ),
-                      const SizedBox(height: 6),
-                      Text(
-                        'Incident reporting is not available in the app yet. '
-                        'This version is an early foundation only.',
-                        style: text.bodyMedium?.copyWith(
-                          color: SafeSignalColors.oceanDark,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 16),
                 FilledButton(
-                  // Intentionally disabled until reporting is built.
-                  onPressed: null,
-                  child: const Text('Report an incident (coming soon)'),
+                  onPressed: () => _start(context, Timing.after),
+                  child: const Text('Report an incident'),
+                ),
+                const SizedBox(height: 8),
+                TextButton(
+                  style: TextButton.styleFrom(
+                    minimumSize: const Size.fromHeight(48),
+                    foregroundColor: SafeSignalColors.coral,
+                  ),
+                  onPressed: () => _start(context, Timing.now),
+                  child: const Text('Report what is happening now'),
                 ),
                 const SizedBox(height: 24),
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: SafeSignalColors.coralSubtle,
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: Text(
-                    'SafeSignal is not an emergency service and does not '
-                    'monitor routes or verify reports. If you are in '
-                    'immediate danger, call 999 or 112.',
-                    style: text.bodyMedium?.copyWith(
-                      color: SafeSignalColors.oceanDark,
-                    ),
-                  ),
+                _Notice(
+                  background: SafeSignalColors.amberSubtle,
+                  border: SafeSignalColors.amber,
+                  title: 'This version cannot send reports yet',
+                  titleColor: SafeSignalColors.amberDark,
+                  body: 'You can practise the steps, but nothing is sent '
+                      'anywhere or saved on your phone. Sending will be '
+                      'added in a later version.',
+                ),
+                const SizedBox(height: 16),
+                const _Notice(
+                  background: SafeSignalColors.coralSubtle,
+                  title: 'Not an emergency service',
+                  titleColor: SafeSignalColors.coral,
+                  body: 'SafeSignal does not contact police or anyone else, '
+                      'and does not monitor routes or verify reports. If you '
+                      'are in immediate danger, call 999 or 112.',
                 ),
               ],
             ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _Notice extends StatelessWidget {
+  const _Notice({
+    required this.background,
+    this.border,
+    required this.title,
+    required this.titleColor,
+    required this.body,
+  });
+
+  final Color background;
+  final Color? border;
+  final String title;
+  final Color titleColor;
+  final String body;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: background,
+        border: border == null ? null : Border.all(color: border!),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: TextStyle(fontWeight: FontWeight.w700, color: titleColor),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            body,
+            style: Theme.of(context)
+                .textTheme
+                .bodyMedium
+                ?.copyWith(color: SafeSignalColors.oceanDark),
+          ),
+        ],
       ),
     );
   }
