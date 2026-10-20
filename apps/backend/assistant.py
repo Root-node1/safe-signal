@@ -48,13 +48,13 @@ _EMERGENCY = re.compile(
     r"\b(help me|being (attacked|followed|robbed|kidnapped)|kidnap\w*|attack(ed|ing) me|"
     r"(has|have|with) a (gun|knife)|rape\w*|assault(ed)?|i('m| am) in danger|"
     r"emergency|about to be|threaten(ed|ing) (me|to kill)|going to kill)\b",
-    re.I,
+    re.IGNORECASE,
 )
 
 _PATTERNS = [
     (re.compile(r"[\w.+-]+@[\w-]+\.[\w.-]+"), "[email removed]"),
     (re.compile(r"(?<!\d)(?:\+?254|0)[\s-]?[17]\d{2}[\s-]?\d{3}[\s-]?\d{3}(?!\d)"), "[phone removed]"),
-    (re.compile(r"\bK[A-Z]{2}\s?\d{3}\s?[A-Z]\b", re.I), "[plate removed]"),
+    (re.compile(r"\bK[A-Z]{2}\s?\d{3}\s?[A-Z]\b", re.IGNORECASE), "[plate removed]"),
     (re.compile(r"-?\d{1,3}\.\d{3,},\s*-?\d{1,3}\.\d{3,}"), "[coordinates removed]"),
     (re.compile(r"\b\d{7,}\b"), "[number removed]"),
 ]
@@ -120,7 +120,7 @@ def _call_provider(messages: list[dict]) -> str:
         headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json"},
     )
     try:
-        with urllib.request.urlopen(req, timeout=TIMEOUT_SECONDS) as resp:  # noqa: S310
+        with urllib.request.urlopen(req, timeout=TIMEOUT_SECONDS) as resp:
             data = json.loads(resp.read(200_000))
     except urllib.error.HTTPError as e:
         codes = {401: "auth", 402: "credits", 404: "model_unavailable", 429: "provider_rate_limit"}
