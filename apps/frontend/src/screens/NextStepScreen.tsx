@@ -1,17 +1,46 @@
-import { useState, type ChangeEvent } from 'react'
+import { useState } from 'react'
 import Shell from '../components/Shell'
-import { PROTOTYPE } from '../lib/prototype'
-import { isValidKenyanPhone } from '../lib/phone'
+import { Button, Card } from '../components/ui'
 import { SUPPORT_RESOURCES } from '../lib/support'
 import type { NextChoice, NextStep } from '../types'
 
-type StepOption = { id: NextStep; title: string; hint: string }
+interface StepOption {
+  id: NextStep
+  title: string
+  hint: string
+  statusNote: string
+  disabled: boolean
+}
 
 const STEPS: StepOption[] = [
-  { id: 'private', title: 'Keep this private', hint: 'Only record what happened. Nobody is contacted.' },
-  { id: 'trusted-contact', title: 'Alert someone I trust', hint: 'Send a short message to one person you choose.' },
-  { id: 'check-in', title: 'Ask for a check-in', hint: 'A support partner follows up to see you are okay.' },
-  { id: 'support', title: 'See support options', hint: 'Numbers and services you can reach.' },
+  {
+    id: 'private',
+    title: 'Submit without contacting anyone',
+    hint: 'Submitting sends your report to the configured SafeSignal backend store. Nobody is contacted.',
+    statusNote: 'Available now',
+    disabled: false,
+  },
+  {
+    id: 'support',
+    title: 'Show emergency and support phone numbers',
+    hint: 'Displays official national helplines for you to dial manually. SafeSignal does not make calls for you.',
+    statusNote: 'Numbers available below',
+    disabled: false,
+  },
+  {
+    id: 'trusted-contact',
+    title: 'Alert someone I trust',
+    hint: 'Automated SMS notification to a nominated contact is in development and currently unavailable.',
+    statusNote: 'Service unavailable · In development',
+    disabled: true,
+  },
+  {
+    id: 'check-in',
+    title: 'Ask for a partner check-in',
+    hint: 'Follow-up safety check-in calls by a partner organization are in development and currently unavailable.',
+    statusNote: 'Service unavailable · In development',
+    disabled: true,
+  },
 ]
 
 type Props = {
@@ -19,52 +48,55 @@ type Props = {
   onBack: () => void
 }
 
-const inputClass =
-  'mt-1 min-h-[52px] w-full rounded-xl border-2 border-[#4A5259] bg-[#F7F5F2] px-4 text-[17px] leading-6 text-[#1B1F23] placeholder:text-[#4A5259]/70 focus:outline-none focus-visible:ring-4 focus-visible:ring-[#0F5C5C]'
-
 export default function NextStepScreen({ onSubmit, onBack }: Props) {
   const [step, setStep] = useState<NextStep | null>(null)
-  const [name, setName] = useState('')
-  const [phone, setPhone] = useState('')
-  const [touched, setTouched] = useState(false)
   const [submitting, setSubmitting] = useState(false)
-  const [failed, setFailed] = useState(false)
+  const [errorType, setErrorType] = useState<'network' | 'timeout' | null>(null)
 
-  const needsContact = step === 'trusted-contact' || step === 'check-in'
-  const phoneOk = isValidKenyanPhone(phone)
-  const canSubmit = step !== null && (!needsContact || phoneOk)
+  const canSubmit = step === 'private' || step === 'support'
 
-  const submit = async () => {
-    if (!step || submitting) return
-    if (needsContact && !phoneOk) {
-      setTouched(true)
-      return
-    }
-    setFailed(false)
+  const handleSubmit = async () => {
+    if (!step || !canSubmit || submitting) return
+
+    setErrorType(null)
     setSubmitting(true)
     try {
       await onSubmit({
         step,
-        contact: needsContact ? { name: name.trim(), phone: phone.trim() } : null,
+        contact: null,
       })
-    } catch {
-      setFailed(true)
+    } catch (err: unknown) {
+      if (err instanceof Error && err.name === 'TimeoutError') {
+        setErrorType('timeout')
+      } else {
+        setErrorType('network')
+      }
       setSubmitting(false)
     }
   }
 
   return (
     <Shell>
-      <h1 className="text-[28px] font-bold leading-[34px]">
-        What would help most?
-      </h1>
-      <p className="mt-2 text-[18px] leading-[26px] text-[#4A5259]">
-        You choose. Nothing happens without your OK.
-      </p>
+      {/* Step / Progress Indicator */}
+      <div className="flex items-center justify-between text-[13px] font-semibold tracking-wide text-[var(--color-teal)]">
+        <span>Step 3 of 3</span>
+        <span className="font-mono text-[12px] uppercase">Review & Submit</span>
+      </div>
 
+      {/* Screen Heading */}
+      <header className="mt-3">
+        <h1 className="text-[28px] sm:text-[32px] font-black leading-tight tracking-tight text-[var(--color-ocean-dark)]">
+          What would help most?
+        </h1>
+        <p className="mt-2 text-[16px] sm:text-[17px] leading-[24px] text-[var(--color-text-muted)]">
+          Choose an option below. Submitting will send the details you provided to the SafeSignal backend store.
+        </p>
+      </header>
+
+      {/* Support Options Radiogroup */}
       <div
         role="radiogroup"
-        aria-label="Next step"
+        aria-label="How to handle your report"
         className="mt-6 flex flex-col gap-3"
       >
         {STEPS.map((s) => {
@@ -75,131 +107,148 @@ export default function NextStepScreen({ onSubmit, onBack }: Props) {
               type="button"
               role="radio"
               aria-checked={selected}
-              disabled={submitting}
+              aria-disabled={s.disabled}
+              disabled={submitting || s.disabled}
               onClick={() => {
-                setStep(s.id)
-                setTouched(false)
+                if (!s.disabled) setStep(s.id)
               }}
-              className={`flex min-h-[64px] w-full flex-col items-start justify-center rounded-xl border-2 px-4 py-3 text-left transition-colors focus:outline-none focus-visible:ring-4 focus-visible:ring-[#0F5C5C] ${
-                selected
-                  ? 'border-[#0F5C5C] bg-[#0F5C5C] text-white'
-                  : 'border-[#4A5259] bg-[#F7F5F2] text-[#1B1F23]'
+              className={`flex min-h-[72px] w-full flex-col items-start justify-center rounded-2xl border-2 p-4 text-left transition-all motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[var(--color-focus)] focus-visible:ring-offset-2 ${
+                s.disabled
+                  ? 'border-[var(--color-border-subtle)] bg-[var(--color-canvas)] text-[var(--color-text-muted)] opacity-60 cursor-not-allowed'
+                  : selected
+                  ? 'border-[var(--color-teal)] bg-[var(--color-teal)] text-white shadow-md'
+                  : 'border-[var(--color-border-subtle)] bg-[var(--color-surface)] text-[var(--color-text-primary)] hover:border-[var(--color-teal)] hover:bg-[var(--color-teal-subtle)] active:bg-[var(--color-teal-subtle)]'
               }`}
             >
-              <span className="text-[20px] font-semibold leading-[26px]">
-                {s.title}
-              </span>
+              <div className="flex w-full items-center justify-between gap-2">
+                <span className="text-[17px] sm:text-[18px] font-bold leading-6">
+                  {s.title}
+                </span>
+                {selected && (
+                  <span
+                    aria-hidden="true"
+                    className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-white text-[13px] font-black text-[var(--color-teal)]"
+                  >
+                    ✓
+                  </span>
+                )}
+              </div>
+
               <span
-                className={`mt-1 text-[15px] leading-[22px] ${
-                  selected ? 'text-white' : 'text-[#4A5259]'
+                className={`mt-1 text-[13px] sm:text-[14px] leading-5 ${
+                  selected ? 'text-white/90' : 'text-[var(--color-text-muted)]'
                 }`}
               >
                 {s.hint}
+              </span>
+
+              <span
+                className={`mt-2 inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-semibold border ${
+                  s.disabled
+                    ? 'border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text-muted)]'
+                    : selected
+                    ? 'border-white/40 bg-white/10 text-white'
+                    : 'border-[var(--color-teal)]/30 bg-[var(--color-teal-subtle)] text-[var(--color-teal)]'
+                }`}
+              >
+                {s.statusNote}
               </span>
             </button>
           )
         })}
       </div>
 
-      {needsContact && (
-        <section className="mt-5 flex flex-col gap-4 rounded-xl border-2 border-[#0F5C5C] p-4">
-          <label className="block text-[15px] font-medium leading-[22px]">
-            {step === 'trusted-contact' ? 'Their name (optional)' : 'What should we call you? (optional)'}
-            <input
-              type="text"
-              inputMode="text"
-              autoComplete="off"
-              value={name}
-              onChange={(e: ChangeEvent<HTMLInputElement>) => setName(e.target.value)}
-              className={inputClass}
-            />
-          </label>
-
-          <label className="block text-[15px] font-medium leading-[22px]">
-            {step === 'trusted-contact' ? 'Their phone number' : 'Your phone number'}
-            <input
-              type="tel"
-              inputMode="tel"
-              autoComplete="off"
-              placeholder="0712 345 678"
-              value={phone}
-              onChange={(e: ChangeEvent<HTMLInputElement>) => setPhone(e.target.value)}
-              onBlur={() => setTouched(true)}
-              aria-invalid={touched && !phoneOk}
-              className={inputClass}
-            />
-          </label>
-
-          {touched && !phoneOk && (
-            <p role="status" className="text-[15px] leading-[22px]">
-              Enter a Kenyan number like 0712 345 678.
-            </p>
-          )}
-
-          <p className="text-[14px] leading-5 text-[#4A5259]">
-            {step === 'trusted-contact'
-              ? 'We only message this person because you chose to.'
-              : 'We only use this number to check in with you.'}
-            {PROTOTYPE && ' Prototype mode: no message is actually sent.'}
+      {/* Immediate Support Resource Numbers (When 'support' chosen) */}
+      {step === 'support' && (
+        <section aria-labelledby="support-resources-title" className="mt-5">
+          <h2 id="support-resources-title" className="text-[16px] font-bold text-[var(--color-ocean)]">
+            Emergency & Support Helplines (Kenya)
+          </h2>
+          <p className="mt-1 text-[13px] leading-5 text-[var(--color-text-muted)]">
+            These are established national helplines in Kenya. Tap any button to open your phone dialer:
           </p>
+
+          <ul className="mt-3 flex flex-col gap-2.5">
+            {SUPPORT_RESOURCES.map((r) => (
+              <li
+                key={r.tel}
+                className="flex items-center justify-between gap-3 rounded-xl border border-[var(--color-border-subtle)] bg-[var(--color-surface)] p-3.5 shadow-sm"
+              >
+                <div>
+                  <p className="text-[16px] font-bold text-[var(--color-ocean)]">{r.name}</p>
+                  <p className="text-[13px] text-[var(--color-text-muted)]">{r.detail}</p>
+                </div>
+                <a
+                  href={`tel:${r.tel}`}
+                  aria-label={`Call ${r.name} at ${r.tel}`}
+                  className="inline-flex min-h-[44px] min-w-[72px] items-center justify-center rounded-xl bg-[var(--color-teal)] px-4 text-[15px] font-bold text-white shadow-sm transition-colors hover:bg-[var(--color-teal-hover)] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[var(--color-focus)] focus-visible:ring-offset-2"
+                >
+                  {r.tel}
+                </a>
+              </li>
+            ))}
+          </ul>
         </section>
       )}
 
-      {step === 'support' && (
-        <ul className="mt-5 flex flex-col gap-3">
-          {SUPPORT_RESOURCES.map((r) => (
-            <li
-              key={r.tel}
-              className="flex items-center justify-between gap-3 rounded-xl border-2 border-[#4A5259] px-4 py-3"
-            >
-              <div>
-                <p className="text-[17px] font-semibold leading-6">{r.name}</p>
-                <p className="text-[15px] leading-[22px] text-[#4A5259]">{r.detail}</p>
-              </div>
-              <a
-                href={`tel:${r.tel}`}
-                className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-full bg-[#0F5C5C] px-5 text-[17px] font-semibold text-white focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#1B1F23] focus-visible:ring-offset-2"
-              >
-                {r.tel}
-              </a>
-            </li>
-          ))}
-        </ul>
-      )}
-
-      <div className="flex-1" />
-
-      {failed && (
+      {/* Accessible Error Banner */}
+      {errorType !== null && (
         <div
           role="alert"
-          className="mt-6 rounded-xl border-2 border-[#1B1F23] px-4 py-3 text-[15px] leading-[22px]"
+          className="mt-6 flex flex-col gap-1.5 rounded-xl border-2 border-[var(--color-coral)] bg-[var(--color-coral-subtle)] p-4 text-[14px] leading-5 text-[var(--color-coral)]"
         >
-          That didn't go through. Please try again.
+          <div className="flex items-center gap-2 font-bold text-[15px]">
+            <span aria-hidden="true" className="text-lg">⚠</span>
+            <span>
+              {errorType === 'timeout'
+                ? 'Request timed out after 8 seconds.'
+                : 'Could not connect to SafeSignal server.'}
+            </span>
+          </div>
+          <p>
+            {errorType === 'timeout'
+              ? 'The server took too long to respond. The report may or may not have reached the server. You can safely tap Submit report again: retrying the same submission will not create a duplicate while the server stays running.'
+              : 'Please check your connection and tap Submit report to retry.'}
+          </p>
         </div>
       )}
 
-      <button
-        type="button"
-        onClick={submit}
-        disabled={!canSubmit || submitting}
-        className="mt-8 min-h-[60px] w-full rounded-2xl bg-[#0F5C5C] px-6 text-[22px] font-semibold leading-7 text-white focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#1B1F23] focus-visible:ring-offset-2 active:brightness-90 disabled:opacity-50"
-      >
-        {submitting ? 'Sending…' : 'Submit'}
-      </button>
+      {/* Action Buttons */}
+      <div className="mt-8 flex flex-col gap-3">
+        <Button
+          type="button"
+          variant="primary"
+          size="lg"
+          fullWidth
+          onClick={handleSubmit}
+          disabled={!canSubmit || submitting}
+        >
+          {submitting ? 'Submitting to SafeSignal…' : 'Submit report'}
+        </Button>
 
-      <button
-        type="button"
-        onClick={onBack}
-        disabled={submitting}
-        className="mt-4 min-h-[44px] self-start px-1 text-[17px] font-medium leading-6 text-[#0F5C5C] underline underline-offset-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0F5C5C]"
-      >
-        Back
-      </button>
+        <div className="flex items-center justify-between pt-2">
+          <button
+            type="button"
+            onClick={onBack}
+            disabled={submitting}
+            className="inline-flex min-h-[44px] items-center gap-1.5 px-2 text-[16px] font-bold text-[var(--color-teal)] underline underline-offset-4 hover:text-[var(--color-teal-hover)] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[var(--color-focus)] focus-visible:ring-offset-2 rounded-lg disabled:opacity-50"
+          >
+            <span aria-hidden="true">←</span>
+            <span>Back</span>
+          </button>
 
-      <p className="mt-6 text-[14px] leading-5 text-[#4A5259]">
-        SafeSignal doesn't replace police or emergency services. In immediate
-        danger, call 999 or 112.
-      </p>
+          <span className="text-[13px] font-medium text-[var(--color-text-muted)]">
+            Transmits details upon tapping Submit
+          </span>
+        </div>
+      </div>
+
+      {/* Emergency Disclaimer */}
+      <Card className="mt-8 border-[var(--color-border-subtle)] bg-[var(--color-surface)] p-4 text-[13px] leading-5 text-[var(--color-text-muted)]">
+        <p>
+          <strong className="font-semibold text-[var(--color-text-primary)]">Emergency reminder:</strong> SafeSignal does not dispatch emergency units or automatically alert police. If you are in immediate physical danger, please dial <strong className="font-semibold text-[var(--color-ocean)]">999</strong> or <strong className="font-semibold text-[var(--color-ocean)]">112</strong> directly.
+        </p>
+      </Card>
     </Shell>
   )
 }

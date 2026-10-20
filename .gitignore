@@ -5,3 +5,5 @@ __pycache__/
 .env
 .pytest_cache/
 .ruff_cache/
+.claude/
+*.pyc

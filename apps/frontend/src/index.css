@@ -1,6 +1,132 @@
 @import "tailwindcss";
 
-body {
-  margin: 0;
-  background: #F7F5F2;
+@layer base {
+  :root {
+    /* Brand & Accent Core */
+    --color-ocean: #102A36;
+    --color-ocean-dark: #0B1D26;
+    --color-ocean-rgb: 16, 42, 54;
+    --color-teal: #12676C;
+    --color-teal-hover: #0E5357;
+    --color-teal-accent: #167D83;
+    --color-teal-subtle: #E8F4F5;
+    
+    /* Semantic Alert & Status */
+    --color-coral: #C24136;
+    --color-coral-hover: #A83329;
+    --color-coral-subtle: #FCEBE9;
+    --color-amber: #E7A75B;
+    --color-amber-dark: #873800;
+    --color-amber-subtle: #FDF5EA;
+
+    /* Neutrals & Surfaces */
+    --color-canvas: #F5F7F6;
+    --color-surface: #FFFFFF;
+    --color-surface-raised: #FFFFFF;
+    --color-text-primary: #102A36;
+    --color-text-muted: #3D515B;
+    --color-border: #6B7F8C;
+    --color-border-subtle: #CBD5DC;
+
+    /* Focus & Elevation */
+    --color-focus: #167D83;
+    --shadow-sm: 0 1px 2px 0 rgba(16, 42, 54, 0.05);
+    --shadow-md: 0 4px 12px -2px rgba(16, 42, 54, 0.08);
+    --shadow-lg: 0 10px 25px -3px rgba(16, 42, 54, 0.12);
+
+    /* Glassmorphism Tokens */
+    --glass-bg: rgba(245, 247, 246, 0.88);
+    --glass-border: rgba(107, 127, 140, 0.25);
+    --glass-blur: 12px;
+  }
+
+  /* Support for Dark theme tokens */
+  [data-theme="dark"] {
+    --color-ocean: #F5F7F6;
+    --color-ocean-dark: #FFFFFF;
+    --color-ocean-rgb: 245, 247, 246;
+    --color-teal: #22A1A8;
+    --color-teal-hover: #2EC3CC;
+    --color-teal-accent: #1DA0A8;
+    --color-teal-subtle: #122B34;
+
+    --color-coral: #E05D52;
+    --color-coral-hover: #EB7268;
+    --color-coral-subtle: #3A1B19;
+    --color-amber: #F0B774;
+    --color-amber-dark: #FCD8A5;
+    --color-amber-subtle: #3A2B14;
+
+    --color-canvas: #0B1D26;
+    --color-surface: #102A36;
+    --color-surface-raised: #183846;
+    --color-text-primary: #F5F7F6;
+    --color-text-muted: #CBD5DC;
+    --color-border: #4A6372;
+    --color-border-subtle: #243D4B;
+
+    --color-focus: #2EC3CC;
+    --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.3);
+    --shadow-md: 0 4px 12px -2px rgba(0, 0, 0, 0.4);
+    --shadow-lg: 0 10px 25px -3px rgba(0, 0, 0, 0.6);
+
+    --glass-bg: rgba(16, 42, 54, 0.85);
+    --glass-border: rgba(203, 213, 220, 0.15);
+  }
+
+  body {
+    margin: 0;
+    background-color: var(--color-canvas);
+    color: var(--color-text-primary);
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  /* Accessible skip-link helper */
+  .skip-link {
+    position: absolute;
+    top: -9999px;
+    left: 1rem;
+    z-index: 100;
+    padding: 0.75rem 1.25rem;
+    background: var(--color-ocean-dark);
+    color: #FFFFFF;
+    font-weight: 600;
+    border-radius: 0.5rem;
+    text-decoration: none;
+  }
+
+  .skip-link:focus {
+    top: 1rem;
+    outline: 3px solid var(--color-focus);
+    outline-offset: 2px;
+  }
+
+  /* Glassmorphism utility with solid fallback */
+  .glass-panel {
+    background-color: var(--color-surface);
+  }
+
+  @supports (backdrop-filter: blur(12px)) or (-webkit-backdrop-filter: blur(12px)) {
+    .glass-panel {
+      background-color: var(--glass-bg);
+      backdrop-filter: blur(var(--glass-blur));
+      -webkit-backdrop-filter: blur(var(--glass-blur));
+    }
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
 }
