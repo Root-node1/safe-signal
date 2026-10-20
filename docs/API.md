@@ -59,3 +59,6 @@ Errors: 422 validation; 429 `{"detail":"rate_limited"}` after 10 requests per mi
 - Admin authentication is one shared static key; there are no users or audit logs.
 - Rate limits and, in memory mode, idempotency keys are per process and reset on restart.
 - Client identity for limits is the direct connection address; behind a proxy it must be configured (see [SECURITY.md](SECURITY.md)).
+
+## Clients
+The React web app and the Flutter Android app both call `POST /api/reports` with an `Idempotency-Key` header and the same payload. The Flutter app always sends `contactProvided: false` and `consentToShare: false`. CORS applies to browsers only, so the native app is unaffected by the allow-list.

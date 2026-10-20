@@ -1,7 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:http/http.dart' as http;
+import 'package:http/testing.dart';
+import 'package:safesignal/api/report_api.dart';
 import 'package:safesignal/app.dart';
+
+/// Fake server: always accepts and returns a reference code. No real network.
+ReportApi okApi() => ReportApi(
+      baseUrl: 'http://test.invalid',
+      client: MockClient((_) async => http.Response(
+          '{"code":"SS-ABCD-2345","id":"x","status":"Received"}', 201)),
+    );
+
+Widget app() => SafeSignalApp(api: okApi());
 
 void phone(WidgetTester tester, {double textScale = 1.0}) {
   tester.view.physicalSize = const Size(1080, 2400);
@@ -81,18 +93,18 @@ Future<void> toReview(WidgetTester tester,
 }
 
 Future<void> openReport(WidgetTester tester) async {
-  await tester.pumpWidget(const SafeSignalApp());
+  await tester.pumpWidget(app());
   await tapButton(tester, 'Report an incident');
 }
 
 void main() {
   testWidgets('home is honest and offers both entry points', (tester) async {
     phone(tester);
-    await tester.pumpWidget(const SafeSignalApp());
+    await tester.pumpWidget(app());
 
     expect(find.text('Report an incident'), findsWidgets);
     expect(find.text('Report what is happening now'), findsOneWidget);
-    expect(find.textContaining('cannot send reports yet'), findsOneWidget);
+    expect(find.textContaining('Early prototype'), findsOneWidget);
     expect(find.textContaining('Not an emergency service'), findsOneWidget);
   });
 
@@ -105,8 +117,8 @@ void main() {
     await toReview(tester);
     expect(find.text('Review your details'), findsOneWidget);
 
-    await tapButton(tester, 'Finish');
-    expect(find.text('Report not submitted'), findsOneWidget);
+    await tapButton(tester, 'Submit report');
+    expect(find.text('Report received'), findsOneWidget);
   });
 
   testWidgets('requires an incident type before reviewing', (tester) async {
@@ -125,7 +137,7 @@ void main() {
   testWidgets('"happening now" entry preselects timing and shows 999/112 notice',
       (tester) async {
     phone(tester);
-    await tester.pumpWidget(const SafeSignalApp());
+    await tester.pumpWidget(app());
     await tapButton(tester, 'Report what is happening now');
 
     expect(find.textContaining('call 999 or 112'), findsOneWidget);
@@ -177,17 +189,60 @@ void main() {
     expect(find.text('Not provided'), findsNWidgets(2));
   });
 
-  testWidgets('confirmation says the report was NOT submitted', (tester) async {
+  testWidgets('confirmation appears only after the server accepts, and is honest',
+      (tester) async {
     phone(tester);
     await openReport(tester);
     await tapText(tester, 'Unwanted touching');
     await toReview(tester);
-    await tapButton(tester, 'Finish');
+    expect(find.text('Report received'), findsNothing);
+    await tapButton(tester, 'Submit report');
 
-    expect(find.textContaining('has not been submitted'), findsOneWidget);
-    expect(find.textContaining('Nothing was saved on your phone'), findsOneWidget);
-    expect(find.textContaining('successfully'), findsNothing);
-    expect(find.textContaining('has been sent'), findsNothing);
+    expect(find.text('Report received'), findsOneWidget);
+    expect(find.text('SS-ABCD-2345'), findsOneWidget);
+    expect(find.textContaining('has not been'), findsOneWidget);
+    expect(find.textContaining('not an emergency service'), findsOneWidget);
+    expect(find.textContaining('dispatched'), findsNothing);
+    expect(find.textContaining('investigat'), findsNothing);
+  });
+
+  testWidgets('without a configured server nothing is sent and no success is shown',
+      (tester) async {
+    phone(tester);
+    await tester.pumpWidget(SafeSignalApp(api: ReportApi(baseUrl: '')));
+    await tapButton(tester, 'Report an incident');
+    await tapText(tester, 'Unwanted touching');
+    await toReview(tester);
+    await tapButton(tester, 'Submit report');
+
+    expect(find.text('Report received'), findsNothing);
+    expect(find.text('Review your details'), findsOneWidget);
+    expect(find.textContaining('not connected to a SafeSignal server'), findsOneWidget);
+  });
+
+  testWidgets('a failed submission keeps the details for a retry', (tester) async {
+    phone(tester);
+    var fail = true;
+    final api = ReportApi(
+      baseUrl: 'http://test.invalid',
+      client: MockClient((_) async => fail
+          ? http.Response('oops', 500)
+          : http.Response('{"code":"SS-WXYZ-9999"}', 201)),
+    );
+    await tester.pumpWidget(SafeSignalApp(api: api));
+    await tapButton(tester, 'Report an incident');
+    await tapText(tester, 'Unwanted touching');
+    await enterField(tester, 'Route or corridor', 'Thika Road');
+    await toReview(tester);
+    await tapButton(tester, 'Submit report');
+
+    expect(find.text('Report received'), findsNothing);
+    expect(find.textContaining('not confirmed'), findsOneWidget);
+    expect(find.text('Thika Road'), findsOneWidget);
+
+    fail = false;
+    await tapButton(tester, 'Submit report');
+    expect(find.text('SS-WXYZ-9999'), findsOneWidget);
   });
 
   testWidgets('Done clears the draft and returns home', (tester) async {
@@ -196,7 +251,7 @@ void main() {
     await tapText(tester, 'Unwanted touching');
     await enterField(tester, 'Route or corridor', 'Ruiru');
     await toReview(tester);
-    await tapButton(tester, 'Finish');
+    await tapButton(tester, 'Submit report');
     await tapButton(tester, 'Done');
 
     expect(find.text('Report what is happening now'), findsOneWidget);
@@ -214,9 +269,9 @@ void main() {
     await openReport(tester);
     await tapText(tester, 'Unwanted touching');
     await toReview(tester);
-    await tapButton(tester, 'Finish');
+    await tapButton(tester, 'Submit report');
 
-    expect(find.text('Report not submitted'), findsOneWidget);
+    expect(find.text('Report received'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 
@@ -256,9 +311,9 @@ void main() {
     await openReport(tester);
     await tapText(tester, 'Unwanted touching');
     await toReview(tester, option: 'Show emergency and support phone numbers');
-    await tapButton(tester, 'Finish');
+    await tapButton(tester, 'Submit report');
 
-    expect(find.text('Report not submitted'), findsOneWidget);
+    expect(find.text('Report received'), findsOneWidget);
     await reveal(tester, find.text('1195'));
     expect(find.text('1195'), findsOneWidget);
     expect(find.textContaining('does not make calls'), findsOneWidget);
@@ -299,7 +354,7 @@ void main() {
     await tapText(tester, 'Submit without contacting anyone');
     await tapButton(tester, 'Review');
     expect(find.text('Exit'), findsOneWidget);
-    await tapButton(tester, 'Finish');
+    await tapButton(tester, 'Submit report');
     expect(find.text('Exit'), findsOneWidget);
   });
 }

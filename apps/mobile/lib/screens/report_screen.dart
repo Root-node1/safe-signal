@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../api/submission_controller.dart';
 import '../models/report_draft.dart';
 import '../widgets/quick_exit_button.dart';
 import '../navigation.dart';
@@ -7,9 +8,9 @@ import '../theme.dart';
 import 'support_screen.dart';
 
 class ReportScreen extends StatefulWidget {
-  const ReportScreen({super.key, required this.draft});
+  const ReportScreen({super.key, required this.controller});
 
-  final ReportDraft draft;
+  final SubmissionController controller;
 
   @override
   State<ReportScreen> createState() => _ReportScreenState();
@@ -22,7 +23,7 @@ class _ReportScreenState extends State<ReportScreen> {
   late final TextEditingController _area;
   bool _showIncidentError = false;
 
-  ReportDraft get _d => widget.draft;
+  ReportDraft get _d => widget.controller.draft;
 
   @override
   void initState() {
@@ -56,7 +57,7 @@ class _ReportScreenState extends State<ReportScreen> {
       return;
     }
     Navigator.of(context).push(
-      appRoute<void>(context, (_) => SupportScreen(draft: _d)),
+      appRoute<void>(context, (_) => SupportScreen(controller: widget.controller)),
     );
   }
 
@@ -67,7 +68,7 @@ class _ReportScreenState extends State<ReportScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('SafeSignal'),
-        actions: [QuickExitButton(draft: _d)],
+        actions: [QuickExitButton(controller: widget.controller)],
       ),
       body: SafeArea(
         child: Center(

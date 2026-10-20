@@ -10,7 +10,7 @@ Status: prototype under active development. It has not been deployed, security-a
 - Quick Exit (Escape key or Exit button) that leaves the app for a neutral page.
 - FastAPI backend that stores reports in memory (development) or PostgreSQL (persistent), with idempotent submission, rate limiting and a key-protected admin API.
 - A guidance assistant, served through the backend (OpenRouter), with redaction of obvious identifiers and fixed emergency wording.
-- A Flutter Android app with a local-only reporting walkthrough (home, report, support option, review, confirmation, and a Quick Exit button). It sends nothing and saves nothing; it is not connected to the backend.
+- A Flutter Android app that walks through the reporting steps (with a Quick Exit button) and submits to the same API as the web app when built with an `API_BASE_URL`. It saves nothing on the phone. Submission has been unit-tested with a fake transport but not yet on a device.
 
 ## What it does not do
 
@@ -18,7 +18,7 @@ Status: prototype under active development. It has not been deployed, security-a
 - It does not verify, corroborate or review reports, and it shows no live alerts, maps or incident counts.
 - It cannot tell users whether a route, vehicle or stage is safe.
 - The admin screen in the web app shows mock data only; there is no real admin dashboard or sign-in.
-- The Flutter app cannot submit reports: it is a local walkthrough, not connected to the backend, and it states this on screen.
+- The Flutter app has no assistant, maps, accounts or background sync, and shows no reports to the user beyond a reference code.
 - No guarantee of anonymity or confidentiality is made.
 
 ## Repository layout

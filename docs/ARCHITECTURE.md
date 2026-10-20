@@ -5,7 +5,7 @@
 | Component | Location | Status |
 |---|---|---|
 | Web client (React) | `apps/frontend` | Implemented; talks to the API |
-| Android client (Flutter) | `apps/mobile` | Offline reporting walkthrough (M.1); no API calls, no storage |
+| Android client (Flutter) | `apps/mobile` | Reporting flow that submits to `POST /api/reports` (M.2A); no storage; real-device submission untested |
 | API (FastAPI) | `apps/backend` | Implemented |
 | Storage | in-memory or PostgreSQL | Both implemented |
 | Assistant | backend proxy to OpenRouter | Implemented; model id unverified |
@@ -13,13 +13,13 @@
 ```mermaid
 flowchart LR
   Web[React web app] -->|HTTPS JSON| API[FastAPI]
-  Mobile[Flutter Android app] -.->|planned, not built| API
+  Mobile[Flutter Android app] -->|HTTPS JSON, Idempotency-Key| API
   API -->|DATABASE_URL set| PG[(PostgreSQL)]
   API -->|otherwise| Mem[(In-memory store)]
   API -->|server-side only| OR[OpenRouter]
 ```
 
-The dashed line is planned work. The Flutter app currently makes no network requests. Its main manifest declares no permissions; debug and profile builds add `INTERNET` by Flutter default.
+The Flutter app submits reports with the same contract and idempotency behaviour as the web client (implemented and unit-tested with a fake transport; not yet tested against a server from a device). It does not yet call the assistant endpoint. Its manifest declares only `INTERNET`; the server URL is a build-time `API_BASE_URL`, and plain HTTP is allowed in debug builds only.
 
 ## Web client
 

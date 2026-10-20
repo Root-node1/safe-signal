@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../api/submission_controller.dart';
 import '../models/report_draft.dart';
 import '../navigation.dart';
 import '../theme.dart';
@@ -7,9 +8,9 @@ import '../widgets/quick_exit_button.dart';
 import 'review_screen.dart';
 
 class SupportScreen extends StatefulWidget {
-  const SupportScreen({super.key, required this.draft});
+  const SupportScreen({super.key, required this.controller});
 
-  final ReportDraft draft;
+  final SubmissionController controller;
 
   @override
   State<SupportScreen> createState() => _SupportScreenState();
@@ -18,7 +19,7 @@ class SupportScreen extends StatefulWidget {
 class _SupportScreenState extends State<SupportScreen> {
   bool _showError = false;
 
-  ReportDraft get _d => widget.draft;
+  ReportDraft get _d => widget.controller.draft;
 
   void _continue() {
     if (_d.support == null) {
@@ -26,7 +27,7 @@ class _SupportScreenState extends State<SupportScreen> {
       return;
     }
     Navigator.of(context).push(
-      appRoute<void>(context, (_) => ReviewScreen(draft: _d)),
+      appRoute<void>(context, (_) => ReviewScreen(controller: widget.controller)),
     );
   }
 
@@ -37,7 +38,7 @@ class _SupportScreenState extends State<SupportScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('SafeSignal'),
-        actions: [QuickExitButton(draft: _d)],
+        actions: [QuickExitButton(controller: widget.controller)],
       ),
       body: SafeArea(
         child: Center(
@@ -54,7 +55,7 @@ class _SupportScreenState extends State<SupportScreen> {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'Choose an option. Nothing is sent or saved in this version.',
+                  'Choose an option. Nothing is sent until you submit on the last step.',
                   style: text.bodyLarge,
                 ),
                 const SizedBox(height: 16),

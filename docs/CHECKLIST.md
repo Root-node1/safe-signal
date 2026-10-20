@@ -76,16 +76,18 @@ Legend: `[x]` done with repository or test evidence; `[ ]` not done or unverifie
 - [x] M.1.5 support-option step with the four API values (two unavailable, as on the web); selection kept on back navigation and shown on review (automated)
 - [x] M.1.5 Quick Exit button on report, options, review and confirmation screens: clears the in-memory draft and calls the Android close request (automated with a mocked platform channel; real Android behaviour not device-tested; does not clear recents, screenshots or system traces)
 - [ ] Swahili copy (not decided)
-- [ ] M.2: API client with idempotency keys, internet permission in release manifest, real submission and error states (pending)
-- [ ] API client with idempotency (not connected to backend)
+- [x] M.2A API client (`http`), `API_BASE_URL` via `--dart-define`, Idempotency-Key per logical report (reused on unchanged retry, new on edit), submission state model, error states, `INTERNET` permission, debug-only cleartext (19 automated tests with a fake transport)
+- [x] Debug APK rebuilt with M.2A (manifest merge checked: INTERNET and debug cleartext present)
+- [x] M.2B preparation: local phone test guide and checklist in [DEVICE_TEST.md](DEVICE_TEST.md); backend health checked locally in memory mode (no device test yet)
+- [ ] M.2A real-device submission test against a local backend (pending; run DEVICE_TEST.md)
+- [ ] M.2B: assistant screen, HTTPS production endpoint, release signing, retry/offline polish (pending)
 - [ ] Assistant screen
-- [ ] Android internet permission in release manifest (needed when networking is added)
 - [ ] Release signing key held outside Git; signed release build
 
 ## 8. Automated testing
 - [x] Backend unit and API tests
 - [x] PostgreSQL integration tests (run locally only)
-- [x] Flutter widget tests (14: navigation, validation, back-navigation data retention, review accuracy, confirmation wording, draft cleared on Done, 2x text scale)
+- [x] Flutter tests (33: 19 API/controller tests with a fake transport plus 14 UI tests: navigation, validation, back-navigation data retention, review accuracy, confirmation wording, draft cleared on Done, 2x text scale)
 - [ ] Frontend tests
 - [ ] End-to-end test of the report journey
 - [ ] Load test of report and assistant endpoints

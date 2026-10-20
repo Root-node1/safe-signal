@@ -1,22 +1,22 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-import '../models/report_draft.dart';
+import '../api/submission_controller.dart';
 
-/// Clears the in-memory draft, returns to a blank home screen, then asks Android to close the app.
+/// Clears the in-memory draft and submission state, returns to a blank home screen, then asks Android to close the app.
 ///
 /// Limits: this cannot erase Android's recent-apps preview, screenshots, keyboard history,
 /// backups or anything else outside the app. It only discards what SafeSignal holds in memory.
-void quickExit(BuildContext context, ReportDraft draft) {
-  draft.clear();
+void quickExit(BuildContext context, SubmissionController controller) {
+  controller.reset();
   Navigator.of(context).popUntil((r) => r.isFirst);
   SystemNavigator.pop();
 }
 
 class QuickExitButton extends StatelessWidget {
-  const QuickExitButton({super.key, required this.draft});
+  const QuickExitButton({super.key, required this.controller});
 
-  final ReportDraft draft;
+  final SubmissionController controller;
 
   @override
   Widget build(BuildContext context) {
@@ -26,7 +26,7 @@ class QuickExitButton extends StatelessWidget {
         button: true,
         label: 'Quick exit. Clears this report and closes SafeSignal.',
         excludeSemantics: true,
-        onTap: () => quickExit(context, draft),
+        onTap: () => quickExit(context, controller),
         child: TextButton(
           style: TextButton.styleFrom(
             minimumSize: const Size(48, 48),
@@ -36,7 +36,7 @@ class QuickExitButton extends StatelessWidget {
               borderRadius: BorderRadius.circular(24),
             ),
           ),
-          onPressed: () => quickExit(context, draft),
+          onPressed: () => quickExit(context, controller),
           child: const Text('Exit', style: TextStyle(fontWeight: FontWeight.w700)),
         ),
       ),

@@ -1,22 +1,29 @@
 /// Vocabulary and limits mirror the web app and API (`apps/frontend/src/types.ts`,
 /// `apps/backend/schemas.py`). Held in memory only; never written to disk or logs.
-enum Timing { now, after }
+enum Timing {
+  now('now'),
+  after('after');
+
+  const Timing(this.apiValue);
+  final String apiValue;
+}
 
 enum IncidentType {
-  harassment('Someone is harassing me',
+  harassment('harassment', 'Someone is harassing me',
       'Persistent verbal remarks, intimidation, or aggressive behavior.'),
-  threats('Someone is threatening me',
+  threats('threats', 'Someone is threatening me',
       'Direct verbal or physical threats of harm or extortion.'),
-  touching('Unwanted touching',
+  touching('touching', 'Unwanted touching',
       'Non-consensual physical contact, crowding, or invasion of space.'),
-  followed("I think I'm being followed",
+  followed('followed', "I think I'm being followed",
       'Someone tailing you at a stage, terminal, or after alighting.'),
-  dangerousDriving('The driver is driving dangerously',
+  dangerousDriving('dangerous-driving', 'The driver is driving dangerously',
       'Excessive speeding, overlapping, reckless overtaking, or impaired driving.'),
-  unsure('Something else / not sure',
+  unsure('unsure', 'Something else / not sure',
       'Unusual disturbance, theft, baggage interference, or other safety concern.');
 
-  const IncidentType(this.label, this.description);
+  const IncidentType(this.apiValue, this.label, this.description);
+  final String apiValue;
   final String label;
   final String description;
 }
@@ -24,8 +31,7 @@ enum IncidentType {
 /// Values match the API's `support` field. Only the first two work today, as on the web.
 enum SupportOption {
   private('private', 'Submit without contacting anyone',
-      'Nobody would be contacted. Sending reports is not available in this '
-          'version of the app yet.',
+      'Your report goes to SafeSignal only. Nobody else is contacted.',
       available: true),
   support('support', 'Show emergency and support phone numbers',
       'Shows official national helplines for you to dial yourself. '

@@ -1,19 +1,21 @@
 import 'package:flutter/material.dart';
 
+import '../api/submission_controller.dart';
 import '../models/report_draft.dart';
 import '../navigation.dart';
 import '../theme.dart';
 import 'report_screen.dart';
 
 class WelcomeScreen extends StatelessWidget {
-  const WelcomeScreen({super.key, required this.draft});
+  const WelcomeScreen({super.key, required this.controller});
 
-  final ReportDraft draft;
+  final SubmissionController controller;
+  ReportDraft get draft => controller.draft;
 
   void _start(BuildContext context, Timing timing) {
     draft.timing = timing;
     Navigator.of(context).push(
-      appRoute<void>(context, (_) => ReportScreen(draft: draft)),
+      appRoute<void>(context, (_) => ReportScreen(controller: controller)),
     );
   }
 
@@ -67,11 +69,12 @@ class WelcomeScreen extends StatelessWidget {
                 _Notice(
                   background: SafeSignalColors.amberSubtle,
                   border: SafeSignalColors.amber,
-                  title: 'This version cannot send reports yet',
+                  title: 'Early prototype',
                   titleColor: SafeSignalColors.amberDark,
-                  body: 'You can practise the steps, but nothing is sent '
-                      'anywhere or saved on your phone. Sending will be '
-                      'added in a later version.',
+                  body: 'Your report is sent to SafeSignal only when you tap '
+                      'Submit on the last step, and nothing is saved on your '
+                      'phone. In this prototype, reports are stored '
+                      'temporarily and may be cleared.',
                 ),
                 const SizedBox(height: 16),
                 const _Notice(
