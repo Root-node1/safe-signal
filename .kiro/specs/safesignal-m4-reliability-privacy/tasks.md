@@ -615,6 +615,15 @@ payload-stability property.
 
 ## Task 11 — Define the store interface and an in-memory implementation
 
+**Status:** complete — implemented and verified (21 October 2026).
+`pending_draft_store.dart` defines `PendingDraftStore` (`read`, `write`, `delete`, `isAvailable`) with
+the contract documented: one record, `read` returns `null` when absent, `write` replaces, `delete` is
+idempotent. `in_memory_pending_draft_store.dart` implements it in pure Dart. In a release build the
+in-memory store throws `StateError` unless an explicit `releaseReason` is given, and then logs that
+reason through an injectable callback (no report content). T-10's record format and checksum are
+untouched; no dependency, controller or copy change. Tests: `test/pending_draft_store_test.dart`
+(reusable contract suite plus release-guard tests). Flutter: 195 passed, 1 skipped; analyze clean.
+
 **Objective:** Introduce the abstraction that isolates the controller and the screens from the storage
 mechanism, so the secure implementation can be swapped without touching them.
 
