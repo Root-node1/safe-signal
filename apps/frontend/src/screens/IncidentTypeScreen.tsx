@@ -1,6 +1,6 @@
-import { useState, type ReactNode } from 'react'
+import { useState, type KeyboardEvent, type ReactNode } from 'react'
 import Shell from '../components/Shell'
-import { Card } from '../components/ui'
+import { ProgressRail, SelectionTile, InlineBanner } from '../components/ui'
 import type { IncidentType } from '../types'
 
 interface Option {
@@ -10,15 +10,38 @@ interface Option {
   icon: ReactNode
 }
 
+/**
+ * One consistent icon family for every category: 20px outline, 1.75 stroke,
+ * round caps and joins. Icons are decorative and hidden from assistive tech.
+ */
+function Icon({ children }: { children: ReactNode }) {
+  return (
+    <svg
+      className="h-5 w-5 shrink-0"
+      fill="none"
+      viewBox="0 0 24 24"
+      stroke="currentColor"
+      strokeWidth={1.75}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      focusable="false"
+    >
+      {children}
+    </svg>
+  )
+}
+
 const OPTIONS: Option[] = [
   {
     id: 'harassment',
     label: 'Someone is harassing me',
     description: 'Persistent verbal remarks, intimidation, or aggressive behavior.',
     icon: (
-      <svg className="h-6 w-6 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
-        <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-      </svg>
+      <Icon>
+        <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5Z" />
+        <path d="M8.5 10.5h7M8.5 14h4" />
+      </Icon>
     ),
   },
   {
@@ -26,9 +49,10 @@ const OPTIONS: Option[] = [
     label: 'Someone is threatening me',
     description: 'Direct verbal or physical threats of harm or extortion.',
     icon: (
-      <svg className="h-6 w-6 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
-        <path strokeLinecap="round" strokeLinejoin="round" d="M20.618 5.984A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016zM12 9v2m0 4h.01" />
-      </svg>
+      <Icon>
+        <path d="M12 3 4 6v6c0 4.4 3.4 8.1 8 9 4.6-.9 8-4.6 8-9V6l-8-3Z" />
+        <path d="M12 8v4.5M12 16h.01" />
+      </Icon>
     ),
   },
   {
@@ -36,9 +60,10 @@ const OPTIONS: Option[] = [
     label: 'Unwanted touching',
     description: 'Non-consensual physical contact, crowding, or invasion of space.',
     icon: (
-      <svg className="h-6 w-6 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
-        <path strokeLinecap="round" strokeLinejoin="round" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
-      </svg>
+      <Icon>
+        <path d="M18.4 18.4A9 9 0 0 1 5.6 5.6m12.8 12.8A9 9 0 0 1 5.6 5.6" />
+        <path d="M8.5 12.5 11 10m4.5 4.5L15 15" />
+      </Icon>
     ),
   },
   {
@@ -46,10 +71,10 @@ const OPTIONS: Option[] = [
     label: "I think I'm being followed",
     description: 'Someone tailing you at a stage, terminal, or after alighting.',
     icon: (
-      <svg className="h-6 w-6 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
-        <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-        <path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-      </svg>
+      <Icon>
+        <path d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
+        <path d="M2.5 12C3.7 7.9 7.5 5 12 5s8.3 2.9 9.5 7c-1.2 4.1-5 7-9.5 7s-8.3-2.9-9.5-7Z" />
+      </Icon>
     ),
   },
   {
@@ -57,9 +82,9 @@ const OPTIONS: Option[] = [
     label: 'The driver is driving dangerously',
     description: 'Excessive speeding, overlapping, reckless overtaking, or impaired driving.',
     icon: (
-      <svg className="h-6 w-6 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
-        <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
-      </svg>
+      <Icon>
+        <path d="M13 10V4l-8 10h6v6l8-10h-6V4Z" />
+      </Icon>
     ),
   },
   {
@@ -67,9 +92,10 @@ const OPTIONS: Option[] = [
     label: 'Something else / not sure',
     description: 'Unusual disturbance, theft, baggage interference, or other safety concern.',
     icon: (
-      <svg className="h-6 w-6 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
-        <path strokeLinecap="round" strokeLinejoin="round" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-      </svg>
+      <Icon>
+        <circle cx="12" cy="12" r="9" />
+        <path d="M9.6 9.3a2.5 2.5 0 0 1 4.8.9c0 1.7-2.4 2-2.4 3.3M12 17h.01" />
+      </Icon>
     ),
   },
 ]
@@ -78,6 +104,8 @@ type Props = {
   onSelect: (id: IncidentType) => void | Promise<void>
   onBack: () => void
 }
+
+const STEPS = ['Incident type', 'Details', 'Support'] as const
 
 export default function IncidentTypeScreen({ onSelect, onBack }: Props) {
   const [pickedId, setPickedId] = useState<IncidentType | null>(null)
@@ -97,121 +125,84 @@ export default function IncidentTypeScreen({ onSelect, onBack }: Props) {
 
   return (
     <Shell>
-      {/* Progress / Step Indication */}
-      <div className="flex items-center justify-between text-[13px] font-semibold tracking-wide text-[var(--color-teal)]">
-        <span>Step 1 of 3</span>
-        <span className="font-mono text-[12px] uppercase">Incident Type</span>
-      </div>
+      <ProgressRail steps={STEPS} current={0} />
 
-      {/* Heading & Instructions */}
-      <header className="mt-3">
-        <h1 className="text-[28px] sm:text-[32px] font-black leading-tight tracking-tight text-[var(--color-ocean-dark)]">
+      <header className="mt-6">
+        <h1 className="text-[var(--text-2xl)] font-bold leading-[1.2] tracking-[-0.02em] text-[var(--color-ocean-dark)] sm:text-[var(--text-3xl)]">
           What is happening?
         </h1>
-        <p className="mt-2 text-[16px] sm:text-[17px] leading-[24px] text-[var(--color-text-muted)]">
-          Select the category that best fits your situation. You remain in control of what happens next.
+        <p className="mt-2 max-w-[46ch] text-[var(--text-base)] leading-6 text-[var(--color-text-muted)] sm:text-[var(--text-md)]">
+          Choose the category that best describes your situation. You stay in control of what happens next.
         </p>
       </header>
 
-      {/* Accessible Error Announcement */}
       {error && (
-        <div
-          role="alert"
-          className="mt-4 flex items-center gap-2.5 rounded-xl border-2 border-[var(--color-coral)] bg-[var(--color-coral-subtle)] px-4 py-3 text-[15px] font-semibold text-[var(--color-coral)]"
-        >
-          <span aria-hidden="true" className="text-lg">⚠</span>
-          <span>We could not process that selection. Please tap again.</span>
-        </div>
+        <InlineBanner variant="error">
+          <span>We could not process that selection. Please try again.</span>
+        </InlineBanner>
       )}
 
-      {/* Category Selection List */}
-      <ul
-        role="list"
-        aria-label="Incident categories"
-        className="mt-6 flex flex-col gap-3"
-      >
-        {OPTIONS.map((o) => {
+      <div role="radiogroup" aria-label="Incident categories" className="mt-6">
+        <ul className="flex flex-col gap-2.5">
+        {OPTIONS.map((o, index) => {
           const selected = pickedId === o.id
           const disabled = pickedId !== null && !selected
+          const focusable = selected || (pickedId === null && index === 0)
+
+          const onKeyDown = (e: KeyboardEvent<HTMLButtonElement>) => {
+            const last = OPTIONS.length - 1
+            let next: number
+            if (e.key === 'ArrowDown' || e.key === 'ArrowRight') next = index === last ? 0 : index + 1
+            else if (e.key === 'ArrowUp' || e.key === 'ArrowLeft') next = index === 0 ? last : index - 1
+            else if (e.key === 'Home') next = 0
+            else if (e.key === 'End') next = last
+            else return
+            e.preventDefault()
+            void choose(OPTIONS[next].id)
+          }
 
           return (
-            <li key={o.id}>
-              <button
-                type="button"
-                aria-pressed={selected}
-                disabled={disabled}
-                onClick={() => choose(o.id)}
-                className={`group flex min-h-[72px] w-full items-start gap-3.5 rounded-2xl border-2 p-4 text-left transition-all motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[var(--color-focus)] focus-visible:ring-offset-2 ${
-                  selected
-                    ? 'border-[var(--color-teal)] bg-[var(--color-teal)] text-white shadow-md'
-                    : 'border-[var(--color-border-subtle)] bg-[var(--color-surface)] text-[var(--color-text-primary)] hover:border-[var(--color-teal)] hover:bg-[var(--color-teal-subtle)] active:bg-[var(--color-teal-subtle)] disabled:opacity-40'
-                }`}
-              >
-                {/* Visual Icon */}
-                <div
-                  aria-hidden="true"
-                  className={`mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl transition-colors ${
-                    selected
-                      ? 'bg-white/20 text-white'
-                      : 'bg-[var(--color-teal-subtle)] text-[var(--color-teal)] group-hover:bg-[var(--color-teal)] group-hover:text-white'
-                  }`}
-                >
-                  {o.icon}
-                </div>
-
-                {/* Text Content */}
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="text-[17px] sm:text-[18px] font-bold leading-6">
-                      {o.label}
-                    </span>
-                    {/* Visual Checkmark indicator for selected state */}
-                    {selected && (
-                      <span
-                        aria-hidden="true"
-                        className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-white text-[13px] font-black text-[var(--color-teal)]"
-                      >
-                        ✓
-                      </span>
-                    )}
-                  </div>
-                  <p
-                    className={`mt-1 text-[13px] sm:text-[14px] leading-5 ${
-                      selected ? 'text-white/90' : 'text-[var(--color-text-muted)]'
-                    }`}
-                  >
-                    {o.description}
-                  </p>
-                </div>
-              </button>
-            </li>
+            <SelectionTile
+              key={o.id}
+              id={o.id}
+              label={o.label}
+              description={o.description}
+              icon={o.icon}
+              selected={selected}
+              disabled={disabled}
+              tabIndex={focusable ? 0 : -1}
+              onClick={() => choose(o.id)}
+              onKeyDown={onKeyDown}
+            />
           )
         })}
-      </ul>
+        </ul>
+      </div>
 
-      {/* Navigation Controls */}
-      <div className="mt-6 flex items-center justify-between pt-2">
+      <div className="mt-7 flex items-center justify-between gap-4 border-t border-[var(--color-border-subtle)] pt-5">
         <button
           type="button"
           onClick={onBack}
           disabled={pickedId !== null}
-          className="inline-flex min-h-[44px] items-center gap-1.5 px-2 text-[16px] font-bold text-[var(--color-teal)] underline underline-offset-4 hover:text-[var(--color-teal-hover)] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[var(--color-focus)] focus-visible:ring-offset-2 rounded-lg disabled:opacity-50"
+          className="inline-flex min-h-[44px] items-center gap-1.5 rounded-lg px-1 text-[var(--text-base)] font-semibold text-[var(--color-teal)] transition-colors motion-reduce:transition-none hover:text-[var(--color-teal-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-focus)] focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-45"
         >
-          <span aria-hidden="true">←</span>
+          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <path d="M19 12H5m0 0 6-6m-6 6 6 6" />
+          </svg>
           <span>Back</span>
         </button>
 
-        <span className="text-[13px] font-medium text-[var(--color-text-muted)]">
+        <p className="text-right text-[var(--text-xs)] leading-4 text-[var(--color-text-muted)]">
           Nothing is shared yet
-        </span>
+        </p>
       </div>
 
-      {/* Safety Notice Card */}
-      <Card className="mt-8 border-[var(--color-border-subtle)] bg-[var(--color-surface)] p-4 text-[13px] leading-5 text-[var(--color-text-muted)]">
-        <p>
-          <strong className="font-semibold text-[var(--color-text-primary)]">Discreet & flexible:</strong> You can add specific route or vehicle details on the next screen, or skip straight to support options.
-        </p>
-      </Card>
+      <InlineBanner variant="info">
+        <span>
+          <span className="font-semibold text-[var(--color-text-primary)]">Discreet and flexible.</span>{' '}
+          Add route or vehicle details on the next screen, or skip straight to support options.
+        </span>
+      </InlineBanner>
     </Shell>
   )
 }

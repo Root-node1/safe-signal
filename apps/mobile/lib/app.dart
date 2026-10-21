@@ -32,6 +32,8 @@ class _SafeSignalAppState extends State<SafeSignalApp> {
       title: 'SafeSignal',
       debugShowCheckedModeBanner: false,
       theme: buildSafeSignalTheme(),
+      darkTheme: buildSafeSignalDarkTheme(),
+      themeMode: ThemeMode.system,
       locale: _locale,
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       supportedLocales: AppLocalizations.supportedLocales,

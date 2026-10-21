@@ -1,12 +1,14 @@
 import { useState, type ChangeEvent } from 'react'
 import Shell from '../components/Shell'
-import { Button, Card, Input } from '../components/ui'
+import { Button, Card, Input, ProgressRail } from '../components/ui'
 import { EMPTY_DETAILS, type Details } from '../types'
 
 type Props = {
   onContinue: (details: Details) => void
   onBack: () => void
 }
+
+const STEPS = ['Incident type', 'Details', 'Support'] as const
 
 export default function DetailsScreen({ onContinue, onBack }: Props) {
   const [details, setDetails] = useState<Details>(EMPTY_DETAILS)
@@ -18,18 +20,14 @@ export default function DetailsScreen({ onContinue, onBack }: Props) {
 
   return (
     <Shell>
-      {/* Progress / Step Context */}
-      <div className="flex items-center justify-between text-[13px] font-semibold tracking-wide text-[var(--color-teal)]">
-        <span>Step 2 of 3</span>
-        <span className="font-mono text-[12px] uppercase">Incident Details</span>
-      </div>
+      <ProgressRail steps={STEPS} current={1} />
 
       {/* Screen Heading & Guidance */}
       <header className="mt-3">
-        <h1 className="text-[28px] sm:text-[32px] font-black leading-tight tracking-tight text-[var(--color-ocean-dark)]">
+        <h1 className="text-[var(--text-2xl)] sm:text-[var(--text-3xl)] font-black leading-tight tracking-tight text-[var(--color-ocean-dark)]">
           Any details to add?
         </h1>
-        <p className="mt-2 text-[16px] sm:text-[17px] leading-[24px] text-[var(--color-text-muted)]">
+        <p className="mt-2 text-[var(--text-base)] sm:text-[var(--text-md)] leading-[24px] text-[var(--color-text-muted)]">
           All fields are optional. Fill in whatever you notice, or skip directly to support.
         </p>
       </header>
@@ -43,7 +41,7 @@ export default function DetailsScreen({ onContinue, onBack }: Props) {
         className="mt-6 flex flex-col gap-4"
       >
         <Input
-          label="Route or corridor"
+          label="Route or corridor (optional)"
           hint="e.g. Thika Road, Jogoo Road, Rongai route, Westlands"
           value={details.route}
           onChange={setField('route')}
@@ -52,7 +50,7 @@ export default function DetailsScreen({ onContinue, onBack }: Props) {
         />
 
         <Input
-          label="Number plate or matatu name"
+          label="Number plate or matatu name (optional)"
           hint="e.g. KDA 123A or graffiti name written on vehicle"
           value={details.vehicle}
           onChange={setField('vehicle')}
@@ -62,7 +60,7 @@ export default function DetailsScreen({ onContinue, onBack }: Props) {
         />
 
         <Input
-          label="SACCO or operator"
+          label="SACCO or operator (optional)"
           hint="SACCO logo or company name on vehicle body"
           value={details.sacco}
           onChange={setField('sacco')}
@@ -72,7 +70,7 @@ export default function DetailsScreen({ onContinue, onBack }: Props) {
 
         {/* Stage & Location Details */}
         <Input
-          label="Where did it happen?"
+          label="Where did it happen? (optional)"
           hint="Stage, landmark, or intersection where incident took place"
           value={details.where}
           onChange={setField('where')}
@@ -108,13 +106,13 @@ export default function DetailsScreen({ onContinue, onBack }: Props) {
         <button
           type="button"
           onClick={onBack}
-          className="inline-flex min-h-[44px] items-center gap-1.5 px-2 text-[16px] font-bold text-[var(--color-teal)] underline underline-offset-4 hover:text-[var(--color-teal-hover)] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[var(--color-focus)] focus-visible:ring-offset-2 rounded-lg"
+          className="inline-flex min-h-[44px] items-center gap-1.5 px-2 text-[var(--text-base)] font-bold text-[var(--color-teal)] underline underline-offset-4 hover:text-[var(--color-teal-hover)] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[var(--color-focus)] focus-visible:ring-offset-2 rounded-lg"
         >
           <span aria-hidden="true">←</span>
           <span>Back</span>
         </button>
 
-        <span className="text-[13px] font-medium text-[var(--color-text-muted)]">
+        <span className="text-[var(--text-xs)] font-medium text-[var(--color-text-muted)]">
           Nothing is shared yet
         </span>
       </div>

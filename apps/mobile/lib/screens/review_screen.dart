@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 
 import '../api/submission_controller.dart';
+import '../design_tokens.dart';
 import '../l10n/l10n.dart';
 import '../models/report_draft.dart';
 import '../navigation.dart';
-import '../theme.dart';
-import '../widgets/quick_exit_button.dart';
+import '../widgets/widgets.dart';
 import 'confirmation_screen.dart';
 
 class ReviewScreen extends StatefulWidget {
@@ -47,6 +47,7 @@ class _ReviewScreenState extends State<ReviewScreen> {
   @override
   Widget build(BuildContext context) {
     final text = Theme.of(context).textTheme;
+    final scheme = Theme.of(context).colorScheme;
     final l = context.l10n;
     final submitting = _c.isSubmitting;
     final rows = <(String, String)>[
@@ -58,6 +59,11 @@ class _ReviewScreenState extends State<ReviewScreen> {
       (l.fieldArea, _or(l, _d.area)),
       (l.reviewRowSupport, _d.support == null ? '' : l.supportTitle(_d.support!)),
     ];
+    // The secondary action mirrors the height of the primary one, which the
+    // shared theme defines, rather than repeating a literal in this screen.
+    final secondaryButtonHeight =
+        Theme.of(context).filledButtonTheme.style?.minimumSize?.resolve({})?.height ??
+            kTouchMin;
 
     return Scaffold(
       appBar: AppBar(
@@ -69,43 +75,42 @@ class _ReviewScreenState extends State<ReviewScreen> {
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 560),
             child: ListView(
-              padding: const EdgeInsets.all(24),
+              padding: const EdgeInsets.all(kSpace6),
               children: [
-                Text(l.stepOf(3, 3), style: text.labelLarge),
-                const SizedBox(height: 8),
-                Semantics(
-                  header: true,
-                  child: Text(l.reviewTitle, style: text.headlineMedium),
+                StepHeader(
+                  stepLabel: l.stepOf(3, 3),
+                  title: l.reviewTitle,
+                  subtitle: l.reviewIntro,
                 ),
-                const SizedBox(height: 8),
-                Text(l.reviewIntro, style: text.bodyLarge),
-                const SizedBox(height: 16),
-                Card(
-                  elevation: 0,
-                  color: Colors.white,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                    side: const BorderSide(color: SafeSignalColors.borderSubtle),
+                Container(
+                  decoration: BoxDecoration(
+                    color: scheme.surface,
+                    borderRadius: BorderRadius.circular(kRadiusLg),
+                    border: Border.all(color: scheme.outlineVariant),
                   ),
                   child: Padding(
-                    padding: const EdgeInsets.all(16),
+                    padding: const EdgeInsets.all(kSpace4),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        for (final (label, value) in rows)
+                        for (var i = 0; i < rows.length; i++)
                           Padding(
-                            padding: const EdgeInsets.symmetric(vertical: 8),
+                            padding: EdgeInsets.only(
+                              bottom: i == rows.length - 1 ? 0 : kSpace3,
+                            ),
                             child: Semantics(
                               container: true,
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Text(label, style: text.labelLarge),
-                                  const SizedBox(height: 2),
+                                  // labelLarge is the teal row key in the
+                                  // shared theme; the value sits under it.
+                                  Text(rows[i].$1, style: text.labelLarge),
+                                  const SizedBox(height: kSpace1),
                                   Text(
-                                    value,
+                                    rows[i].$2,
                                     style: text.bodyLarge?.copyWith(
-                                      color: SafeSignalColors.oceanDark,
+                                      color: scheme.onSurface,
                                     ),
                                   ),
                                 ],
@@ -117,43 +122,32 @@ class _ReviewScreenState extends State<ReviewScreen> {
                   ),
                 ),
                 if (_message(l, _c.state) case final msg?) ...[
-                  const SizedBox(height: 16),
-                  Semantics(
-                    liveRegion: true,
-                    child: Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: SafeSignalColors.coralSubtle,
-                        border: Border.all(color: SafeSignalColors.coral),
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      child: Text(
-                        msg,
-                        style: text.bodyMedium?.copyWith(
-                          color: SafeSignalColors.oceanDark,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
+                  const SizedBox(height: kSpace4),
+                  // The error variant is a live region, so TalkBack announces
+                  // the message as soon as it appears.
+                  SafeSignalBanner(
+                    variant: SafeSignalBannerVariant.error,
+                    title: '',
+                    body: msg,
                   ),
                 ],
                 if (submitting) ...[
-                  const SizedBox(height: 16),
+                  const SizedBox(height: kSpace4),
                   Semantics(
                     liveRegion: true,
                     label: l.submittingSemantics,
                     child: const LinearProgressIndicator(),
                   ),
                 ],
-                const SizedBox(height: 24),
+                const SizedBox(height: kSpace6),
                 FilledButton(
                   onPressed: submitting ? null : _c.submit,
                   child: Text(submitting ? l.submitting : l.actionSubmit),
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: kSpace2),
                 OutlinedButton(
                   style: OutlinedButton.styleFrom(
-                    minimumSize: const Size.fromHeight(52),
+                    minimumSize: Size.fromHeight(secondaryButtonHeight),
                   ),
                   onPressed: submitting ? null : () => Navigator.of(context).pop(),
                   child: Text(l.actionEdit),

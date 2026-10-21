@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/semantics.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
@@ -91,4 +92,41 @@ Future<void> toReview(WidgetTester tester,
 Future<void> openReport(WidgetTester tester) async {
   await tester.pumpWidget(app());
   await tapButton(tester, 'Report an incident');
+}
+
+/// A tall viewport so every widget on a long reporting step is laid out and
+/// can be found without scrolling.
+void tallPhone(WidgetTester tester) {
+  tester.view.physicalSize = const Size(1080, 4000);
+  tester.view.devicePixelRatio = 2.0;
+  addTearDown(tester.view.reset);
+}
+
+/// The root of the semantics tree for the test's render view.
+///
+/// The render view's [PipelineOwner] owns the [SemanticsOwner] for that view.
+/// (`RendererBinding.pipelineOwner` is deprecated.)
+SemanticsNode rootSemanticsNode(WidgetTester tester) {
+  final renderView = tester.binding.renderViews.firstWhere(
+    (view) => view.flutterView == tester.view,
+  );
+  return renderView.owner!.semanticsOwner!.rootSemanticsNode!;
+}
+
+/// Whether any node in the semantics tree is a live region.
+bool hasLiveRegionNode(WidgetTester tester) {
+  bool found = false;
+  void walk(SemanticsNode node) {
+    if (node.flagsCollection.isLiveRegion) {
+      found = true;
+      return;
+    }
+    node.visitChildren((child) {
+      walk(child);
+      return true;
+    });
+  }
+
+  walk(rootSemanticsNode(tester));
+  return found;
 }

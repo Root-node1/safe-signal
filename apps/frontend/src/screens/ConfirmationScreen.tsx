@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import Shell from '../components/Shell'
-import { Button, Card } from '../components/ui'
+import { Button, Card, InlineBanner, HelplineCard } from '../components/ui'
 import { SUPPORT_RESOURCES } from '../lib/support'
 import type { NextChoice } from '../types'
 
@@ -32,17 +32,14 @@ export default function ConfirmationScreen({ choice, code, onRestart }: Props) {
     <Shell>
       {/* Confirmation Heading & Receipt Banner */}
       <header className="pt-2">
-        <div className="inline-flex items-center gap-2 rounded-full border border-[var(--color-teal)]/30 bg-[var(--color-teal-subtle)] px-3.5 py-1 text-[13px] font-semibold text-[var(--color-teal)] tracking-wide">
-          <span className="flex h-4 w-4 items-center justify-center rounded-full bg-[var(--color-teal)] text-[11px] text-white font-bold" aria-hidden="true">
-            ✓
-          </span>
-          <span>Report received</span>
-        </div>
+        <InlineBanner variant="info">
+          Report received
+        </InlineBanner>
 
-        <h1 className="mt-3 text-[28px] sm:text-[34px] font-black leading-tight tracking-tight text-[var(--color-ocean-dark)]">
+        <h1 className="mt-3 text-[var(--text-2xl)] sm:text-[var(--text-3xl)] font-black leading-tight tracking-tight text-[var(--color-ocean-dark)]">
           Report Submitted
         </h1>
-        <p className="mt-2 text-[16px] sm:text-[17px] leading-[24px] text-[var(--color-text-muted)]">
+        <p className="mt-2 text-[var(--text-base)] sm:text-[var(--text-md)] leading-[24px] text-[var(--color-text-muted)]">
           The SafeSignal server accepted your report. This is a prototype, so reports are stored temporarily and may be cleared.
         </p>
       </header>
@@ -51,17 +48,17 @@ export default function ConfirmationScreen({ choice, code, onRestart }: Props) {
       {code ? (
         <Card elevated className="mt-6 border-2 border-[var(--color-teal)]/40 bg-[var(--color-surface)] p-6 shadow-md">
           <div className="flex items-center justify-between">
-            <span className="text-[13px] font-bold uppercase tracking-wider text-[var(--color-text-muted)]">
+            <span className="text-[var(--text-xs)] font-bold uppercase tracking-wider text-[var(--color-text-muted)]">
               Reference Code
             </span>
-            <span className="rounded-full border border-[var(--color-border)] bg-[var(--color-canvas)] px-2 py-0.5 font-mono text-[11px] font-semibold text-[var(--color-text-muted)]">
+            <span className="rounded-full border border-[var(--color-border)] bg-[var(--color-canvas)] px-2 py-0.5 font-mono text-[var(--text-xs)] font-semibold text-[var(--color-text-muted)]">
               Backend issued
             </span>
           </div>
 
           <p
             aria-label={`Your reference code is ${code}`}
-            className="mt-3 font-mono text-[28px] sm:text-[32px] font-black tracking-widest text-[var(--color-ocean-dark)] select-all"
+            className="mt-3 font-mono text-[var(--text-2xl)] sm:text-[var(--text-3xl)] font-black tracking-[0.15em] text-[var(--color-ocean-dark)] select-all"
           >
             {code}
           </p>
@@ -84,13 +81,13 @@ export default function ConfirmationScreen({ choice, code, onRestart }: Props) {
             </span>
 
             {copyStatus === 'failed' && (
-              <p role="status" className="text-[13px] leading-5 text-[var(--color-text-muted)]">
+              <p role="status" className="text-[var(--text-xs)] leading-5 text-[var(--color-text-muted)]">
                 Copy shortcut unavailable. You can highlight and copy the code above, or write it down.
               </p>
             )}
           </div>
 
-          <p className="mt-4 border-t border-[var(--color-border-subtle)] pt-3 text-[12px] leading-5 text-[var(--color-text-muted)]">
+          <p className="mt-4 border-t border-[var(--color-border-subtle)] pt-3 text-[var(--text-xs)] leading-5 text-[var(--color-text-muted)]">
             You can note this code privately, but it cannot be looked up yet, and because storage is temporary it may stop being valid.
           </p>
         </Card>
@@ -99,10 +96,10 @@ export default function ConfirmationScreen({ choice, code, onRestart }: Props) {
       {/* Honest What Happened / What Did NOT Happen Notice */}
       <section aria-labelledby="status-breakdown-heading" className="mt-6">
         <Card className="border-[var(--color-border-subtle)] bg-[var(--color-surface)] p-5">
-          <h2 id="status-breakdown-heading" className="text-[16px] font-bold text-[var(--color-ocean)]">
+          <h2 id="status-breakdown-heading" className="text-[var(--text-base)] font-bold text-[var(--color-ocean)]">
             Submission Status
           </h2>
-          <ul className="mt-3 flex flex-col gap-2.5 text-[14px] leading-5 text-[var(--color-text-muted)]">
+          <ul className="mt-3 flex flex-col gap-2.5 text-[var(--text-sm)] leading-5 text-[var(--color-text-muted)]">
             <li className="flex items-start gap-2">
               <span className="font-bold text-[var(--color-teal)]" aria-hidden="true">✓</span>
               <span>Your details were received by the SafeSignal server. Storage is temporary in this prototype.</span>
@@ -122,31 +119,16 @@ export default function ConfirmationScreen({ choice, code, onRestart }: Props) {
       {/* Support Numbers Section (If selected or needed) */}
       {choice.step === 'support' && (
         <section aria-labelledby="confirmed-helplines-title" className="mt-6">
-          <h2 id="confirmed-helplines-title" className="text-[17px] font-bold text-[var(--color-ocean)]">
+          <h2 id="confirmed-helplines-title" className="text-[var(--text-md)] font-bold text-[var(--color-ocean)]">
             Emergency & Support Contacts (Kenya)
           </h2>
-          <p className="mt-1 text-[13px] leading-5 text-[var(--color-text-muted)]">
+          <p className="mt-1 text-[var(--text-xs)] leading-5 text-[var(--color-text-muted)]">
             If you need immediate assistance, call these official national numbers:
           </p>
 
-          <ul className="mt-3 flex flex-col gap-2.5">
+<ul className="mt-3 flex flex-col gap-2.5">
             {SUPPORT_RESOURCES.map((r) => (
-              <li
-                key={r.tel}
-                className="flex items-center justify-between gap-3 rounded-xl border border-[var(--color-border-subtle)] bg-[var(--color-surface)] p-3.5 shadow-sm"
-              >
-                <div>
-                  <p className="text-[16px] font-bold text-[var(--color-ocean)]">{r.name}</p>
-                  <p className="text-[13px] text-[var(--color-text-muted)]">{r.detail}</p>
-                </div>
-                <a
-                  href={`tel:${r.tel}`}
-                  aria-label={`Call ${r.name} at ${r.tel}`}
-                  className="inline-flex min-h-[44px] min-w-[72px] items-center justify-center rounded-xl bg-[var(--color-teal)] px-4 text-[15px] font-bold text-white shadow-sm transition-colors hover:bg-[var(--color-teal-hover)] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[var(--color-focus)] focus-visible:ring-offset-2"
-                >
-                  {r.tel}
-                </a>
-              </li>
+              <HelplineCard key={r.tel} name={r.name} detail={r.detail} tel={r.tel} />
             ))}
           </ul>
         </section>
@@ -176,9 +158,9 @@ export default function ConfirmationScreen({ choice, code, onRestart }: Props) {
       </div>
 
       {/* Emergency Helpline Reassurance */}
-      <footer className="mt-8 text-center text-[13px] leading-5 text-[var(--color-text-muted)]">
+      <footer className="mt-8 text-center text-[var(--text-xs)] leading-5 text-[var(--color-text-muted)]">
         <p>
-          Need to exit now? Press <kbd className="rounded border border-[var(--color-border)] bg-[var(--color-surface)] px-1.5 py-0.5 font-mono text-[11px] font-semibold text-[var(--color-ocean)]">Esc</kbd> or tap the Exit button at the top of the page.
+          Need to exit now? Press <kbd className="rounded border border-[var(--color-border)] bg-[var(--color-surface)] px-1.5 py-0.5 font-mono text-[var(--text-xs)] font-semibold text-[var(--color-ocean)]">Esc</kbd> or tap the Exit button at the top of the page.
         </p>
       </footer>
     </Shell>

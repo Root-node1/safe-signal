@@ -24,7 +24,7 @@ export default function Shell({ children, maxWidth = 'default' }: ShellProps) {
       <main
         id="main-content"
         tabIndex={-1}
-        className={`mx-auto flex w-full flex-1 flex-col px-5 pb-12 pt-6 outline-none ${containerWidthClass}`}
+        className={`mx-auto flex w-full flex-1 flex-col px-5 pb-12 pt-6 outline-none motion-reduce:animate-none screen-enter ${containerWidthClass}`}
       >
         {children}
       </main>

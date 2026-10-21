@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 
 import '../api/submission_controller.dart';
+import '../design_tokens.dart';
 import '../l10n/l10n.dart';
 import '../models/report_draft.dart';
 import '../navigation.dart';
-import '../theme.dart';
-import '../widgets/quick_exit_button.dart';
+import '../widgets/widgets.dart';
 import 'review_screen.dart';
 
 class SupportScreen extends StatefulWidget {
@@ -34,8 +34,12 @@ class _SupportScreenState extends State<SupportScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final text = Theme.of(context).textTheme;
     final l = context.l10n;
+    // The secondary action mirrors the height of the primary one, which the
+    // shared theme defines, rather than repeating a literal in this screen.
+    final secondaryButtonHeight =
+        Theme.of(context).filledButtonTheme.style?.minimumSize?.resolve({})?.height ??
+            kTouchMin;
 
     return Scaffold(
       appBar: AppBar(
@@ -47,21 +51,27 @@ class _SupportScreenState extends State<SupportScreen> {
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 560),
             child: ListView(
-              padding: const EdgeInsets.all(24),
+              padding: const EdgeInsets.all(kSpace6),
               children: [
-                Text(l.stepOf(2, 3), style: text.labelLarge),
-                const SizedBox(height: 8),
-                Semantics(
-                  header: true,
-                  child: Text(l.supportHeading, style: text.headlineMedium),
+                StepHeader(
+                  stepLabel: l.stepOf(2, 3),
+                  title: l.supportHeading,
+                  subtitle: l.supportIntro,
                 ),
-                const SizedBox(height: 8),
-                Text(l.supportIntro, style: text.bodyLarge),
-                const SizedBox(height: 16),
                 for (final option in SupportOption.values)
-                  _OptionTile(
-                    option: option,
+                  SafeSignalTile(
+                    title: l.supportTitle(option),
+                    subtitle: l.supportHint(option),
+                    badge: option.available ? null : l.unavailableTag,
                     selected: _d.support == option,
+                    enabled: option.available,
+                    // Disabled tiles are dimmed and their badge is not part of
+                    // the merged label, so the unavailability is spelled out
+                    // here for TalkBack.
+                    semanticLabel: option.available
+                        ? null
+                        : '${l.supportTitle(option)}. ${l.supportHint(option)} '
+                            '${l.unavailableSemantics}',
                     onTap: option.available
                         ? () => setState(() {
                               _d.support = option;
@@ -69,117 +79,28 @@ class _SupportScreenState extends State<SupportScreen> {
                             })
                         : null,
                   ),
-                if (_showError)
-                  Semantics(
-                    liveRegion: true,
-                    child: Text(
-                      l.chooseSupportError,
-                      style: text.bodyMedium?.copyWith(
-                        color: SafeSignalColors.coral,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
+                if (_showError) ...[
+                  const SizedBox(height: kSpace2),
+                  SafeSignalBanner(
+                    variant: SafeSignalBannerVariant.error,
+                    title: '',
+                    body: l.chooseSupportError,
                   ),
-                const SizedBox(height: 24),
-                FilledButton(onPressed: _continue, child: Text(l.actionReview)),
-                const SizedBox(height: 8),
+                ],
+                const SizedBox(height: kSpace6),
+                FilledButton(
+                  onPressed: _continue,
+                  child: Text(l.actionReview),
+                ),
+                const SizedBox(height: kSpace2),
                 OutlinedButton(
                   style: OutlinedButton.styleFrom(
-                    minimumSize: const Size.fromHeight(52),
+                    minimumSize: Size.fromHeight(secondaryButtonHeight),
                   ),
                   onPressed: () => Navigator.of(context).pop(),
                   child: Text(l.actionBack),
                 ),
               ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _OptionTile extends StatelessWidget {
-  const _OptionTile({
-    required this.option,
-    required this.selected,
-    required this.onTap,
-  });
-
-  final SupportOption option;
-  final bool selected;
-  final VoidCallback? onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final text = Theme.of(context).textTheme;
-    final l = context.l10n;
-    final enabled = onTap != null;
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 10),
-      child: Semantics(
-        inMutuallyExclusiveGroup: true,
-        checked: selected,
-        enabled: enabled,
-        button: true,
-        label: '${l.supportTitle(option)}. ${l.supportHint(option)}'
-            '${enabled ? '' : ' ${l.unavailableSemantics}'}',
-        excludeSemantics: true,
-        onTap: onTap,
-        child: Material(
-          color: selected
-              ? SafeSignalColors.tealSubtle
-              : enabled
-                  ? Colors.white
-                  : SafeSignalColors.canvas,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-            side: BorderSide(
-              color: selected ? SafeSignalColors.teal : SafeSignalColors.border,
-              width: selected ? 2.5 : 1,
-            ),
-          ),
-          child: InkWell(
-            borderRadius: BorderRadius.circular(16),
-            onTap: onTap,
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(minHeight: 64),
-              child: Padding(
-                padding: const EdgeInsets.all(14),
-                child: Row(
-                  children: [
-                    Icon(
-                      selected
-                          ? Icons.radio_button_checked
-                          : Icons.radio_button_unchecked,
-                      color: selected
-                          ? SafeSignalColors.teal
-                          : SafeSignalColors.border,
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(l.supportTitle(option), style: text.titleMedium),
-                          const SizedBox(height: 2),
-                          Text(l.supportHint(option), style: text.bodyMedium),
-                          if (!enabled) ...[
-                            const SizedBox(height: 4),
-                            Text(
-                              l.unavailableTag,
-                              style: text.bodyMedium?.copyWith(
-                                fontWeight: FontWeight.w700,
-                                color: SafeSignalColors.amberDark,
-                              ),
-                            ),
-                          ],
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
             ),
           ),
         ),

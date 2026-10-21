@@ -4,7 +4,28 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>frontend</title>
+    <title>SafeSignal</title>
+    <link rel="preconnect" href="https://fonts.bunny.net">
+    <link rel="preload" as="style" href="https://fonts.bunny.net/css?family=inter:400,500,600,700&display=swap" onload="this.onload=null;this.rel='stylesheet'" />
+    <noscript><link rel="stylesheet" href="https://fonts.bunny.net/css?family=inter:400,500,600,700&display=swap" /></noscript>
+    <!--
+      Theme no-flash script: resolves the theme before React paints so the
+      correct `data-theme` attribute is present on first render. Reads the
+      explicit user preference first, then falls back to the OS colour scheme.
+      Never writes to localStorage here — only explicit toggles persist.
+    -->
+    <script>
+      (function () {
+        try {
+          var KEY = 'safesignal-theme'
+          var stored = localStorage.getItem(KEY)
+          var theme = stored === 'dark' || stored === 'light'
+            ? stored
+            : (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
+          document.documentElement.dataset.theme = theme === 'dark' ? 'dark' : ''
+        } catch (_) { /* no-op */ }
+      })()
+    </script>
   </head>
   <body>
     <div id="root"></div>

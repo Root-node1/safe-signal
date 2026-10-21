@@ -38,6 +38,53 @@
     --glass-bg: rgba(245, 247, 246, 0.88);
     --glass-border: rgba(107, 127, 140, 0.25);
     --glass-blur: 12px;
+
+    /* ─── Spacing Scale (4 px base unit) ──────────────────────────────────── */
+    --space-1:  4px;
+    --space-2:  8px;
+    --space-3:  12px;
+    --space-4:  16px;
+    --space-5:  20px;
+    --space-6:  24px;
+    --space-8:  32px;
+    --space-10: 40px;
+    --space-12: 48px;
+    --space-16: 64px;
+
+    /* ─── Border Radius Scale ─────────────────────────────────────────────── */
+    /* sm: badges/chips  md: inputs/small-cards  lg: tiles/cards  xl: modals  */
+    --radius-sm:   8px;
+    --radius-md:   12px;
+    --radius-lg:   16px;
+    --radius-xl:   20px;
+    --radius-full: 9999px;
+
+    /* ─── Typography Scale ────────────────────────────────────────────────── */
+    /* Each step pairs a font-size with a harmonious line-height.              */
+    /* Usage: font-size: var(--text-md); line-height: var(--leading-md);       */
+    --text-xs:   11px;  --leading-xs:   16px;
+    --text-sm:   13px;  --leading-sm:   20px;
+    --text-base: 15px;  --leading-base: 23px;
+    --text-md:   17px;  --leading-md:   26px;
+    --text-lg:   20px;  --leading-lg:   30px;
+    --text-xl:   24px;  --leading-xl:   32px;
+    --text-2xl:  28px;  --leading-2xl:  36px;
+    --text-3xl:  32px;  --leading-3xl:  40px;
+    --text-4xl:  40px;  --leading-4xl:  48px;
+    --text-5xl:  46px;  --leading-5xl:  52px;
+
+    /* ─── Motion Tokens ───────────────────────────────────────────────────── */
+    /* Only background-color, border-color, box-shadow, opacity, and transform */
+    /* should be transitioned; layout properties must not be.                  */
+    --duration-fast:     120ms;
+    --duration-base:     200ms;
+    --duration-slow:     350ms;
+    --ease-standard:     cubic-bezier(0.4, 0, 0.2, 1);
+    --ease-decelerate:   cubic-bezier(0, 0, 0.2, 1);
+
+    /* ─── Touch Target ────────────────────────────────────────────────────── */
+    /* WCAG 2.5.5: all interactive controls must meet this minimum.            */
+    --touch-min: 44px;
   }
 
   /* Support for Dark theme tokens */
@@ -78,6 +125,8 @@
     margin: 0;
     background-color: var(--color-canvas);
     color: var(--color-text-primary);
+    /* Inter is activated in Task 9 once the font link is added to index.html. */
+    /* font-family: 'Inter', system-ui, …;                                     */
     font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     -webkit-font-smoothing: antialiased;
     text-rendering: optimizeLegibility;
@@ -128,5 +177,31 @@
     transition-duration: 0.01ms !important;
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
+  }
+}
+
+/* ─── Screen-Entry Animation ──────────────────────────────────────────────── */
+/* Applied to <main> inside Shell to give each new screen a gentle entrance.   */
+/* The prefers-reduced-motion block above already zeroes animation-duration    */
+/* globally, so the @media guard here is an explicit belt-and-braces fallback. */
+
+@keyframes screen-enter {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.screen-enter {
+  animation: screen-enter var(--duration-slow) var(--ease-decelerate) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .screen-enter {
+    animation: none;
   }
 }
