@@ -192,8 +192,14 @@ The pending record is a single JSON blob stored under one key. It is small (the 
 bounded by the API limits: route ≤ 120, area ≤ 120, vehicle ≤ 20, sacco ≤ 80 characters — under
 1 KB total) and there is exactly one of it.
 
-**Chosen: `flutter_secure_storage`** (Android `EncryptedSharedPreferences`, keystore-backed by
-Android Keystore).
+**Chosen: `flutter_secure_storage` 11.2.0** (Android: AES-GCM value encryption, with the AES key
+wrapped by an RSA-OAEP key held in the Android Keystore — the plugin's default `AndroidOptions()`).
+
+> **Amended (founder decision, option 1):** this section originally named `EncryptedSharedPreferences`.
+> Plugin 11.0.0 removed that Jetpack Security backend, so the supported mechanism is the plugin's own
+> RSA-OAEP + AES-GCM cipher. The security requirements (SR-3.1, SR-3.3, SR-12.2) are unchanged. Because
+> the wrapped key lives in app preferences, a restored backup can fail to unwrap, so excluding the
+> store from Android backup (SR-13.3, T-21/T-22) is required before real-user deployment.
 
 Alternatives considered and rejected:
 
@@ -241,7 +247,7 @@ Notes:
 
 ### 4.3 Checksum and write atomicity
 
-`flutter_secure_storage` writes a single key/value; the underlying `EncryptedSharedPreferences`
+`flutter_secure_storage` writes a single key/value; the underlying SharedPreferences
 commit is atomic per value. Two layers protect against a torn write:
 
 1. The whole record is one value — there is no multi-file or multi-key partial state to recover.

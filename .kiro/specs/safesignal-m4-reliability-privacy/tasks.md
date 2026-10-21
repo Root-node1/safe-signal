@@ -657,6 +657,19 @@ implementation.
 
 ## Task 12 — Implement the encrypted store
 
+**Status:** complete — implemented and verified by automated tests (21 October 2026); the on-device
+encryption check remains T-31. `flutter_secure_storage` 11.2.0 added (D-H approved; 32 transitive
+packages in `pubspec.lock`, no existing package changed). `secure_pending_draft_store.dart` adds
+`SecurePendingDraftStore` over a small `SecureKeyValue` adapter (real: `FlutterSecureKeyValue`), one
+key `safesignal_pending_draft_v1`, the whole record as one JSON value. Read validates JSON, version and
+checksum and raises `PendingDraftCorrupt` (an alias of `PendingDraftCorruptException`), including lazy
+cast failures; platform failures raise the separate `PendingDraftStorageException`. `isAvailable()` is
+a non-destructive read; there is no plaintext fallback. The plugin's Android backend is RSA-OAEP +
+AES-GCM with the key in the Keystore, not `EncryptedSharedPreferences` (removed in 11.0.0); design.md
+§ 4.1 was amended. Effective minSdk 24 (unchanged). Debug and release APKs build. **Android backup
+exclusion (SR-13.3) is required before real-user deployment** and stays with its own task. Not wired
+into the controller; T-13 untouched.
+
 **Objective:** Store the pending report in app-private, keystore-backed encrypted storage.
 
 **Components:** `apps/mobile/lib/storage/secure_pending_draft_store.dart` (new),
@@ -684,7 +697,8 @@ implementation.
 **Acceptance criteria**
 
 - The stored value in the app's shared-preferences directory is not readable as plain report text
-  (verified on a device in T-31).
+  (verified on a device in T-31; the backend is the plugin's RSA-OAEP + AES-GCM cipher, not
+  `EncryptedSharedPreferences`, which plugin 11.x removed — design.md § 4.1).
 - A corrupt value raises `PendingDraftCorrupt` rather than returning a partial record.
 - No secret material is committed.
 
