@@ -7,6 +7,7 @@ import ConfirmationScreen from './screens/ConfirmationScreen'
 import AdminScreen from './screens/AdminScreen'
 import { AssistantLauncher, AssistantModal } from './assistant'
 import { buildPayload, createReport, newSubmissionKey } from './lib/api'
+import { resolveSubmissionKey, type SubmissionKeyPolicy } from './lib/submissionKeyPolicy'
 import type { Details, IncidentType, NextChoice, Timing } from './types'
 
 // State only. Nothing is persisted in the browser.
@@ -34,7 +35,7 @@ function App() {
   const contentRef = useRef<HTMLDivElement>(null)
   const prevScreen = useRef(screen.name)
   // Identity of the in-flight logical submission. Memory only; cleared on success/restart.
-  const submission = useRef<{ sig: string; key: string } | null>(null)
+  const submission = useRef<SubmissionKeyPolicy>(null)
 
   // On a real screen change only: reset scroll and move focus to the new heading.
   // Skipped on first load and on unrelated state updates (typing, assistant).
@@ -102,10 +103,10 @@ function App() {
             // Same payload as actually sent => same key (safe retry, even after Back/Forward).
             // Changed payload => new key, avoiding a 409 from the backend.
             const sig = JSON.stringify(payload)
-            if (submission.current?.sig !== sig) {
-              submission.current = { sig, key: newSubmissionKey() }
-            }
-            const { code } = await createReport(payload, submission.current.key)
+            const policy = resolveSubmissionKey(submission.current, sig, newSubmissionKey)
+            submission.current = policy
+            // resolveSubmissionKey always returns a policy for a signature.
+            const { code } = await createReport(payload, policy!.key)
             submission.current = null
             setScreen({ name: 'confirmation', choice, code })
           }}

@@ -227,7 +227,7 @@ route table, schema diff against `001_init.sql`) are scripted in a small script 
 
 ## Task 05 — Run the PostgreSQL integration suite in CI
 
-**Status:** implemented and locally verified — the first CI run is still to confirm the log
+**Status:** complete — implemented, locally verified and **verified in GitHub Actions**
 (21 October 2026).
 `.github/workflows/ci.yml`: the backend job now has a `postgres:18` service container with a
 `pg_isready` health check, installs the PostgreSQL client in the job only (the runtime dependency
@@ -239,11 +239,15 @@ needed no adjustment, and no existing test was deleted or weakened. `docs/CHECKL
 suite goes from **86 passed, 1 skipped** (module self-skip, no `TEST_DATABASE_URL`) to **94 passed,
 0 skipped** — the eight integration tests now run — with three consecutive identical runs, the
 `_test` guard still refusing a non-`_test` database, the migration ledger showing `001_init` applied
-in order, and the `reports` column set unchanged. Ruff clean. **Outstanding:** the CI log itself
-cannot be produced here — no push was made — so "the CI log shows the PostgreSQL tests running, not
-skipping" and "zero skips in the PostgreSQL module" remain to be read on the first run. No production
-or Neon database was contacted, no infrastructure was provisioned, and the T-04 findings (C-1, C-2,
-C-3, C-7) were not touched.
+in order, and the `reports` column set unchanged. Ruff clean.
+**CI verification (21 October 2026):** GitHub Actions run **39652159825** on commit `88a07ba`
+(https://github.com/Root-node1/safe-signal/actions/runs/39652159825) — the `backend` job
+**succeeded**; the log shows the `postgres:18` container started with the `pg_isready` health check
+and the disposable credentials, `ruff` reporting "All checks passed!", and `pytest -q -rs` reporting
+**94 passed, 1 xfailed** with **zero skips** — the PostgreSQL integration tests execute, they do not
+self-skip. The one expected failure is T-04's C-7 citation check, which is deliberately still armed.
+No production or Neon database was contacted, no infrastructure was provisioned, and the T-04
+findings (C-1, C-2, C-3, C-7) were not touched.
 
 **Objective:** Make `apps/backend/tests/test_store_postgres.py` actually run on every push. Today it
 self-skips unless `TEST_DATABASE_URL` points at a database whose name ends in `_test`, and CI provides
@@ -280,7 +284,7 @@ database that the same set passes.
 
 ## Task 06 — Add a Flutter CI job
 
-**Status:** implemented and verified locally — the CI run itself is still outstanding
+**Status:** complete — implemented, locally verified and **verified in GitHub Actions**
 (21 October 2026).
 `.github/workflows/ci.yml` gains a `mobile` job: the Flutter SDK is pinned to **3.47.7** — the
 version recorded in `docs/CHECKLIST.md` § 7, channel stable, installed with
@@ -289,16 +293,19 @@ Gradle cache by an `actions/cache@v4` step keyed on the Gradle wrapper propertie
 `flutter pub get`, `flutter analyze --fatal-infos` and `flutter test`. The opt-in integration test
 under `apps/mobile/test/integration` is **not executed**: it self-skips unless
 `SAFESIGNAL_BACKEND_IT=1`, because it needs a live backend and a loopback port, and it stays a
-manual/scheduled task (T-29); the CI log will show it as skipped. Verified locally with the same
+manual/scheduled task (T-29); the CI log shows it as skipped. Verified locally with the same
 SDK: `flutter pub get` clean, `flutter analyze --fatal-infos` reports **no issues**, `flutter test`
 gives **159 passed, 1 skipped** (the opt-in test), and the opt-in test on its own reports *"Skip:
 set SAFESIGNAL_BACKEND_IT=1 to run against a local backend"*. The frontend and backend jobs are
 otherwise untouched — the only change to them is T-05's `pytest -q -rs`. No application code,
 dependency, lockfile or project file was changed: `apps/mobile/pubspec.yaml`, `pubspec.lock` and
-every Dart source are byte-identical. **Outstanding:** the CI run itself, so "the job runs the full
-Flutter test suite and fails on any test failure or analyzer issue" is proven locally but not yet
-in a CI log (T-05's CI run is likewise still outstanding). The T-04 findings (C-1, C-2, C-3, C-7)
-were not touched.
+every Dart source are byte-identical.
+**CI verification (21 October 2026):** GitHub Actions run **39652159825** on commit `88a07ba`
+(https://github.com/Root-node1/safe-signal/actions/runs/39652159825) — the `mobile` job
+**succeeded**; the log shows Flutter 3.47.7 with Dart 3.13.5, `flutter analyze --fatal-infos`
+reporting "No issues found!", and `flutter test` reporting **"159 tests passed, 1 skipped"** — the
+single skip is the opt-in integration test, which is the expected result. The T-04 findings (C-1,
+C-2, C-3, C-7) were not touched.
 
 **Objective:** Run `flutter analyze` and `flutter test` on every push. Today the Flutter suite runs
 only on a developer machine.
@@ -330,7 +337,7 @@ only on a developer machine.
 
 ## Task 07 — Introduce a React test harness
 
-**Status:** implemented and verified locally — the CI run itself is still outstanding
+**Status:** complete — implemented, locally verified and **verified in GitHub Actions**
 (21 October 2026).
 **D-I (approve the React test dev dependencies) is treated as granted by this instruction**, and
 the addition is dev-only: `vitest ^5.0.5`, `jsdom ^30.1.3`, `@testing-library/react ^16.3.3`,
@@ -347,8 +354,12 @@ storage key, so no production export was added. The frontend CI job now runs `np
 `npm run lint`. Verified locally from a clean `npm ci`: lint passes, 2 test files / 8 tests pass, and
 `npm run build` emits the **same** assets as before T-07 — `index-CjguLTi7.js` 280.20 kB
 (gzip 83.45 kB) and `index-CJNuPtxW.css` 35.48 kB (gzip 7.22 kB), identical hashes — so the test
-tooling adds nothing to the shipped bundle. **Outstanding:** the CI run itself, so OR-5.3 is only
-satisfied once CI runs the suite (T-05's and T-06's CI runs are likewise still outstanding).
+tooling adds nothing to the shipped bundle.
+**CI verification (21 October 2026):** GitHub Actions run **39652159825** on commit `88a07ba`
+(https://github.com/Root-node1/safe-signal/actions/runs/39652159825) — the `frontend` job
+**succeeded**; the log shows `npm run test` reporting **"Test Files 2 passed (2), Tests 8 passed
+(8)"** and `npm run build` emitting the same two assets as before (`index-CJNuPtxW.css` 35.48 kB,
+`index-CjguLTi7.js` 280.20 kB). OR-5.3 is therefore satisfied.
 `npm audit` still reports two high-severity advisories (`vite` 8.3.0–8.3.2 and `source-map-js`
 1.0.0–1.2.1); both were already in the lockfile at `HEAD` and are not fixed here, because the fix is
 a dev-dependency version bump outside T-07's authorisation. Two T-04 items were adjusted for
@@ -396,6 +407,41 @@ dependency set.
 
 ## Task 08 — Extract the submission-key policy into a pure module
 
+**Status:** implemented and verified locally — the manual browser check is outstanding
+(21 October 2026).
+`apps/frontend/src/lib/submissionKeyPolicy.ts` (new) holds the policy exactly as `design.md` § 5.5
+specifies it: `resolveSubmissionKey(current, signature, newKey)` returns the existing
+`{key, signature}` when the signature is unchanged, and a fresh `{key: newKey(), signature}`
+otherwise. `apps/frontend/src/App.tsx` now calls it: the `submission` ref was retyped from
+`{sig, key}` to the module's `SubmissionKeyPolicy` (the task allows either shape), and the inline
+comparison was replaced by the call. The fetch, the 8-second timeout, the error handling and the
+key format are untouched, and the observable behaviour is identical (FR-6.2, RR-3.3).
+Tests: `apps/frontend/src/lib/submissionKeyPolicy.test.ts` (new) covers the first call, the reuse
+(the same policy object comes back and `newKey` is not called) and the changed signature;
+`apps/frontend/src/App.test.tsx` (new) drives the real reporting flow and asserts the header the
+app actually sends — the **same** `Idempotency-Key` for a retried identical submission, a
+**different** one after the payload changes, and a **different** one after a successful submission
+and a restart; `apps/frontend/src/lib/api.test.ts` gained two tests that pin the untouched
+8-second abort and the `TimeoutError` mapping. Supporting changes: `apps/frontend/vitest.setup.ts`
+now also registers the Testing Library cleanup after each test and stubs `window.matchMedia` and
+`window.scrollTo`, which jsdom does not implement; `apps/frontend/tsconfig.node.json` gained the
+`DOM` library so that setup file type-checks; `apps/frontend/src/App.test.tsx` imports
+`@testing-library/jest-dom/vitest` for the matcher types. No dependency was added or changed, and
+no test file is bundled.
+Verification: `npm run test` → **4 files, 17 tests passed**; `npm run lint` clean; `npm run build`
+succeeds, and the bundle changes only by the extracted policy (280.20 kB → 280.25 kB, gzip 83.45 →
+83.47 kB); the backend suite is unaffected (86 passed, 1 skipped, 1 xfailed).
+**Manual verification in a real browser (21 October 2026):** headless Chrome for Testing 131
+driven over the DevTools protocol against the Vite dev server and an in-memory `uvicorn`, with
+synthetic data only. The flow was completed end to end. The first submission was failed on purpose
+and the retry with the unchanged payload carried the **same** `Idempotency-Key`; the confirmation
+screen rendered **one** reference code (a single DOM element) and the fresh in-memory store held
+exactly **one** report for that retried pair; after a successful submission and a restart the same
+payload carried a **different** key and produced a second report; a changed payload carried a third
+different key and a third report. Quick Exit replaced the page with the neutral one. No console
+errors and no page exceptions were recorded. **Outstanding:** the next CI run of the frontend job.
+The T-04 exceptions (C-1, C-2, C-3, C-7) and the retention and consent decisions were not touched.
+
 **Objective:** Make the React idempotency rule testable without changing its behaviour.
 
 **Components:** `apps/frontend/src/lib/submissionKeyPolicy.ts` (new),
@@ -430,6 +476,33 @@ identical submissions.
 ---
 
 ## Task 09 — Disclose the reload limitation in the React UI
+
+**Status:** implemented and verified — reading the banner aloud with a screen reader is still
+outstanding (21 October 2026).
+`apps/frontend/src/screens/NextStepScreen.tsx` now appends one sentence to the failure banner in
+**both** branches: *"Tapping Submit report again is safe as long as you stay on this page. Reloading
+the page loses the submission key, so a report sent after a reload may be stored twice."* The
+sentence is rendered inside the existing `<p>`, so the layout, the design tokens and the button
+behaviour are unchanged, and it stays inside the `InlineBanner`'s `role="alert"` live region (the
+error variant's default role) — it is not separated from it (FR-6.3, RR-3.3). The wording is
+conditional: it says a report *may* be stored twice, and it promises no immunity.
+Tests: `apps/frontend/src/screens/NextStepScreen.test.tsx` (new) renders the screen with a rejected
+`onSubmit` and asserts, for the timeout branch (a `TimeoutError`) and the network branch alike, that
+the banner carries the reload caveat and the "may be stored twice" wording; it also asserts the
+banner is still the `role="alert"` region, that the wording does not promise a duplicate is
+impossible, and that no banner appears before a submission is attempted.
+Verification: `npm run test` → **5 files, 22 tests passed**; `npm run lint` clean; `npm run build`
+succeeds, with the bundle growing only by the new sentence (280.25 kB → 280.43 kB); the backend and
+Flutter suites are untouched (86 passed, 1 skipped, 1 xfailed; 159 passed, 1 skipped).
+**Browser check (21 October 2026):** headless Chrome against the Vite dev server and an in-memory
+`uvicorn`, with the report request deliberately held open so the app hits its own timeout. The
+banner appeared **8.2 seconds** after the submit tap — the 8-second timeout and the `TimeoutError`
+mapping are unchanged — inside a `role="alert"` region, showing the timeout text followed by the new
+caveat. No console errors and no page exceptions were recorded. **Outstanding:** reading the banner
+aloud with a screen reader (a human check), and the next CI run of the frontend job.
+**T-04 C-1 is deliberately untouched.** The "stored temporarily and may be cleared" wording in the
+confirmation and landing screens, in the assistant guidance and in the Flutter strings is *not* part
+of T-09, which covers the failure banner only; it stays open as a separate follow-up.
 
 **Objective:** Tell the user, in the failure state, that a page reload may lose the submission key and
 that a retry after a reload can create a second report. This is the approved safeguard: the
@@ -468,6 +541,42 @@ timeout and network branches.
 # Group D — Flutter pending report
 
 ## Task 10 — Define the pending-report record, checksum and expiry constant
+
+**Status:** complete — implemented and verified (21 October 2026).
+`apps/mobile/lib/storage/pending_draft.dart` (new) is a pure value object with no I/O and no
+storage: `version` (1), `payload` (the canonical map from `ReportApi.payload(draft)`), `key` (the
+idempotency key issued for that payload), `createdAt` and `expiresAt` (epoch milliseconds).
+`toJson()` / `fromJson()` check the version explicitly: an unknown version is raised as
+`PendingDraftCorruptException` — a corrupt record, not a parse failure — and so is a missing field
+or a payload that is not the expected object. The checksum is SHA-256 over
+`version|payload|key|createdAt|expiresAt`, using the canonical payload string and excluding the
+checksum field itself; `verifyChecksum()` compares the checksum the record carries with the one
+recomputed from its content, so corruption is detected rather than silently repaired.
+`isExpired(DateTime now)` is true once the expiry timestamp is reached. The expiry policy is the
+compile-time constant `kPendingDraftExpiryHours` (24 hours), overridable per build with
+`--dart-define=SAFESIGNAL_PENDING_DRAFT_TTL_HOURS=…`; the override was exercised at 48 hours and
+both the constant and the expiry arithmetic followed it.
+**No dependency was added.** SHA-256 is implemented in the same file, because M.4 allows exactly one
+new client dependency — `flutter_secure_storage` (D-H, still open) — and the checksum is an
+integrity check over the record's own bytes rather than a security control: the record itself is
+encrypted by the platform keystore (`design.md` § 4.1, § 4.3). The implementation is pinned to the
+FIPS 180-4 test vectors.
+Tests: `apps/mobile/test/pending_draft_test.dart` (new) covers the round trip (every field
+preserved exactly; a stored checksum is kept, not recomputed), the payload-stability property
+(`jsonEncode(jsonDecode(record.toJson()['payload']))` equals the original payload string byte for
+byte, and equals the body the API would post), the checksum (stable for the same content; changed
+by the payload, the key, the created timestamp or the expiry timestamp; the checksum field excluded
+from the canonical string), the expiry check (not expired before the window, expired at and after
+it, the 24-hour default), the corruption handling (unknown version, missing field, non-JSON
+payload, and that the corruption reason carries no report content), and the SHA-256 vectors.
+Verification: `flutter analyze --fatal-infos` → **no issues**; `flutter test` → **179 passed, 1
+skipped** (the opt-in integration test, unchanged). The React and backend suites are untouched.
+**Outstanding:** the next CI run of the `mobile` job, which must show 179 tests. Manual
+verification: none required by the task.
+**Record-format note:** `toJson()` writes the payload as its canonical JSON *string*, so that
+`jsonDecode(toJson()['payload'])` yields the map — the property the acceptance criterion names.
+`fromJson()` accepts either that string or an already-decoded object, and both forms yield the same
+checksum, because the checksum is always computed over the canonical payload string.
 
 **Objective:** Create the value object that will be stored, with its integrity check and the expiry
 policy constant. Pure Dart, no storage yet, fully unit-testable.

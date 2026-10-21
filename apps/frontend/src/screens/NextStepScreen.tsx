@@ -6,6 +6,13 @@ import type { NextChoice, NextStep } from '../types'
 
 const PROGRESS_STEPS = ['Incident type', 'Details', 'Support'] as const
 
+// T-09 (FR-6.3, RR-3.3): the reload limitation is disclosed, not fixed. Fixing it
+// would mean keeping the submission key across a reload, which needs persistent
+// storage of the report itself in the browser (FR-6.1). Shown in the failure
+// banner, in both the timeout and the network branch.
+const RELOAD_CAVEAT =
+  'Tapping Submit report again is safe as long as you stay on this page. Reloading the page loses the submission key, so a report sent after a reload may be stored twice.'
+
 interface StepOption {
   id: NextStep
   title: string
@@ -171,7 +178,8 @@ export default function NextStepScreen({ onSubmit, onBack }: Props) {
             <p>
               {errorType === 'timeout'
                 ? 'The server took too long to respond. The report may or may not have reached the server. You can safely tap Submit report again: retrying the same submission will not create a duplicate while the server stays running.'
-                : 'Please check your connection and tap Submit report to retry.'}
+                : 'Please check your connection and tap Submit report to retry.'}{' '}
+              {RELOAD_CAVEAT}
             </p>
           </div>
         </InlineBanner>
