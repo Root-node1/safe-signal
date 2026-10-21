@@ -2,6 +2,11 @@
 
 Goal: submit synthetic reports from a physical phone to the FastAPI backend running in WSL2, with nothing public and no database involved. Use synthetic data only.
 
+## Results so far
+The developer ran 7 of these checks on a Redmi A5 against the in-memory backend and reported all passing: normal submit with reference code, airplane mode, server stopped, retry after restart, Quick Exit, rapid taps, and no report content in the inspected server logs. Not reported: the on-device freeze (timeout) retry, the `adb logcat` and phone-storage checks, TalkBack, and any run against PostgreSQL.
+
+The timeout retry is covered by an automated test with the real client and a real backend process (`SAFESIGNAL_BACKEND_IT=1 flutter test test/integration` from `apps/mobile`): it freezes the server so the client times out, resumes it so the first request is accepted late, then retries unchanged and expects the same key, the original reference code and exactly one stored report.
+
 ## Findings for this machine (checked, nothing changed)
 - WSL2 uses NAT (no `.wslconfig`; WSL address 192.168.61.12, Windows Wi-Fi 192.168.0.102, network profile "Public"). A phone cannot reach WSL directly; Windows must forward a port.
 - Backend storage: leave `DATABASE_URL` unset so the API runs in **in-memory mode**. No database is touched and everything disappears when the server stops. A system PostgreSQL 18 is listening on 127.0.0.1:5432; its contents were not inspected and it must not be used for this test. Never expose 5432.
