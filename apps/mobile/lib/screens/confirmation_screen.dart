@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../api/submission_controller.dart';
+import '../l10n/l10n.dart';
 import '../models/report_draft.dart';
 import '../theme.dart';
 import '../widgets/quick_exit_button.dart';
@@ -15,6 +16,7 @@ class ConfirmationScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final text = Theme.of(context).textTheme;
+    final l = context.l10n;
     final state = controller.state;
     final code = state is Succeeded ? state.code : '';
     final showHelplines = state is Succeeded && state.support == SupportOption.support;
@@ -43,15 +45,10 @@ class ConfirmationScreen extends StatelessWidget {
               children: [
                 Semantics(
                   header: true,
-                  child: Text('Report received', style: text.headlineMedium),
+                  child: Text(l.confirmTitle, style: text.headlineMedium),
                 ),
                 const SizedBox(height: 12),
-                Text(
-                  'The SafeSignal server accepted your report. In this '
-                  'prototype, reports are stored temporarily and may be '
-                  'cleared.',
-                  style: text.bodyLarge,
-                ),
+                Text(l.confirmBody, style: text.bodyLarge),
                 const SizedBox(height: 16),
                 Container(
                   padding: const EdgeInsets.all(16),
@@ -63,7 +60,7 @@ class ConfirmationScreen extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('Reference code', style: text.labelLarge),
+                      Text(l.refCode, style: text.labelLarge),
                       const SizedBox(height: 4),
                       SelectableText(
                         code,
@@ -81,14 +78,10 @@ class ConfirmationScreen extends StatelessWidget {
                           minimumSize: const Size(48, 48),
                         ),
                         onPressed: () => Clipboard.setData(ClipboardData(text: code)),
-                        child: const Text('Copy code'),
+                        child: Text(l.copyCode),
                       ),
                       const SizedBox(height: 8),
-                      Text(
-                        'You cannot look this code up yet, and it may stop '
-                        'being valid.',
-                        style: text.bodyMedium,
-                      ),
+                      Text(l.codeNote, style: text.bodyMedium),
                     ],
                   ),
                 ),
@@ -101,10 +94,7 @@ class ConfirmationScreen extends StatelessWidget {
                     borderRadius: BorderRadius.circular(16),
                   ),
                   child: Text(
-                    'Nobody has been contacted. This report has not been '
-                    'verified, reviewed, or forwarded, and nothing is saved '
-                    'on your phone. SafeSignal is not an emergency service. '
-                    'If you are in immediate danger, call 999 or 112.',
+                    l.confirmNotice,
                     style: text.bodyMedium?.copyWith(
                       color: SafeSignalColors.oceanDark,
                     ),
@@ -114,22 +104,20 @@ class ConfirmationScreen extends StatelessWidget {
                   const SizedBox(height: 24),
                   Semantics(
                     header: true,
-                    child: Text('Emergency and support numbers',
-                        style: text.titleMedium),
+                    child: Text(l.helplinesTitle, style: text.titleMedium),
                   ),
                   const SizedBox(height: 4),
-                  Text('Call these yourself. SafeSignal does not make calls.',
-                      style: text.bodyMedium),
+                  Text(l.helplinesIntro, style: text.bodyMedium),
                   const SizedBox(height: 8),
-                  for (final r in supportResources)
+                  for (final h in Helpline.values)
                     Card(
                       elevation: 0,
                       color: Colors.white,
                       child: ListTile(
-                        title: Text(r.name, style: text.titleMedium),
-                        subtitle: Text(r.detail),
+                        title: Text(l.helplineName(h), style: text.titleMedium),
+                        subtitle: Text(l.helplineDetail(h)),
                         trailing: Text(
-                          r.tel,
+                          h.tel,
                           style: text.headlineMedium?.copyWith(fontSize: 24),
                         ),
                       ),
@@ -141,7 +129,7 @@ class ConfirmationScreen extends StatelessWidget {
                     controller.reset();
                     Navigator.of(context).popUntil((r) => r.isFirst);
                   },
-                  child: const Text('Done'),
+                  child: Text(l.actionDone),
                 ),
               ],
             ),

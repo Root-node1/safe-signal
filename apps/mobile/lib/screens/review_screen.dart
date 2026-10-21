@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../api/submission_controller.dart';
+import '../l10n/l10n.dart';
 import '../models/report_draft.dart';
 import '../navigation.dart';
 import '../theme.dart';
@@ -46,15 +47,16 @@ class _ReviewScreenState extends State<ReviewScreen> {
   @override
   Widget build(BuildContext context) {
     final text = Theme.of(context).textTheme;
+    final l = context.l10n;
     final submitting = _c.isSubmitting;
     final rows = <(String, String)>[
-      ('When', _d.timing == Timing.now ? 'Happening now' : 'Already happened'),
-      ('What happened', _d.incident?.label ?? ''),
-      ('Route or corridor', _or(_d.route)),
-      ('Number plate or matatu name', _or(_d.vehicle.toUpperCase())),
-      ('SACCO or operator', _or(_d.sacco)),
-      ('Where it happened', _or(_d.area)),
-      ('What would help most', _d.support?.title ?? ''),
+      (l.reviewRowWhen, l.timingLabel(_d.timing)),
+      (l.reviewRowWhat, _d.incident == null ? '' : l.incidentLabel(_d.incident!)),
+      (l.fieldRoute, _or(l, _d.route)),
+      (l.fieldVehicle, _or(l, _d.vehicle.toUpperCase())),
+      (l.fieldSacco, _or(l, _d.sacco)),
+      (l.fieldArea, _or(l, _d.area)),
+      (l.reviewRowSupport, _d.support == null ? '' : l.supportTitle(_d.support!)),
     ];
 
     return Scaffold(
@@ -69,18 +71,14 @@ class _ReviewScreenState extends State<ReviewScreen> {
             child: ListView(
               padding: const EdgeInsets.all(24),
               children: [
-                Text('Step 3 of 3', style: text.labelLarge),
+                Text(l.stepOf(3, 3), style: text.labelLarge),
                 const SizedBox(height: 8),
                 Semantics(
                   header: true,
-                  child: Text('Review your details', style: text.headlineMedium),
+                  child: Text(l.reviewTitle, style: text.headlineMedium),
                 ),
                 const SizedBox(height: 8),
-                Text(
-                  'Nothing has been sent yet. Tap Submit report to send this '
-                  'to SafeSignal. SafeSignal is not an emergency service.',
-                  style: text.bodyLarge,
-                ),
+                Text(l.reviewIntro, style: text.bodyLarge),
                 const SizedBox(height: 16),
                 Card(
                   elevation: 0,
@@ -118,7 +116,7 @@ class _ReviewScreenState extends State<ReviewScreen> {
                     ),
                   ),
                 ),
-                if (_message(_c.state) case final msg?) ...[
+                if (_message(l, _c.state) case final msg?) ...[
                   const SizedBox(height: 16),
                   Semantics(
                     liveRegion: true,
@@ -143,14 +141,14 @@ class _ReviewScreenState extends State<ReviewScreen> {
                   const SizedBox(height: 16),
                   Semantics(
                     liveRegion: true,
-                    label: 'Submitting your report',
+                    label: l.submittingSemantics,
                     child: const LinearProgressIndicator(),
                   ),
                 ],
                 const SizedBox(height: 24),
                 FilledButton(
                   onPressed: submitting ? null : _c.submit,
-                  child: Text(submitting ? 'Submitting…' : 'Submit report'),
+                  child: Text(submitting ? l.submitting : l.actionSubmit),
                 ),
                 const SizedBox(height: 8),
                 OutlinedButton(
@@ -158,7 +156,7 @@ class _ReviewScreenState extends State<ReviewScreen> {
                     minimumSize: const Size.fromHeight(52),
                   ),
                   onPressed: submitting ? null : () => Navigator.of(context).pop(),
-                  child: const Text('Edit details'),
+                  child: Text(l.actionEdit),
                 ),
               ],
             ),
@@ -168,36 +166,24 @@ class _ReviewScreenState extends State<ReviewScreen> {
     );
   }
 
-  static String _or(String v) => v.trim().isEmpty ? 'Not provided' : v.trim();
+  static String _or(AppLocalizations l, String v) =>
+      v.trim().isEmpty ? l.notProvided : v.trim();
 
   /// Wording for every non-success outcome. The report stays on screen for a retry.
-  static String? _message(SubmissionState s) => switch (s) {
-        ValidationFailed() =>
-          'The server could not accept some details. Tap Edit details to '
-              'check them, then try again.',
-        NetworkFailed(timedOut: true) =>
-          'The server took too long to respond. Your report may or may not '
-              'have arrived. You can tap Submit report again: retrying the '
-              'same report will not create a duplicate while the server '
-              'keeps running.',
-        NetworkFailed() =>
-          'Could not reach SafeSignal. Check your connection and tap Submit '
-              'report to try again. Your details are still here.',
+  static String? _message(AppLocalizations l, SubmissionState s) => switch (s) {
+        ValidationFailed() => l.errValidation,
+        NetworkFailed(timedOut: true) => l.errTimeout,
+        NetworkFailed() => l.errOffline,
         RateLimited(:final retryAfterSeconds) =>
-          'Too many reports from this connection. Please wait '
-              '${_wait(retryAfterSeconds)} and try again.',
-        UnexpectedResponse() =>
-          'Something went wrong on the server. Your report was not '
-              'confirmed. Please try again later.',
-        NotConfigured() =>
-          'This build of the app is not connected to a SafeSignal server, '
-              'so nothing was sent.',
+          l.errRateLimited(_wait(l, retryAfterSeconds)),
+        UnexpectedResponse() => l.errUnexpected,
+        NotConfigured() => l.errNotConfigured,
         _ => null,
       };
 
-  static String _wait(int? seconds) {
-    if (seconds == null || seconds <= 0) return 'a while';
-    if (seconds < 90) return '$seconds seconds';
-    return '${(seconds / 60).ceil()} minutes';
+  static String _wait(AppLocalizations l, int? seconds) {
+    if (seconds == null || seconds <= 0) return l.waitAWhile;
+    if (seconds < 90) return l.waitSeconds(seconds);
+    return l.waitMinutes((seconds / 60).ceil());
   }
 }

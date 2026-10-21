@@ -8,58 +8,42 @@ enum Timing {
   final String apiValue;
 }
 
+/// Display text lives in the ARB files (lib/l10n); only the API values are fixed here.
 enum IncidentType {
-  harassment('harassment', 'Someone is harassing me',
-      'Persistent verbal remarks, intimidation, or aggressive behavior.'),
-  threats('threats', 'Someone is threatening me',
-      'Direct verbal or physical threats of harm or extortion.'),
-  touching('touching', 'Unwanted touching',
-      'Non-consensual physical contact, crowding, or invasion of space.'),
-  followed('followed', "I think I'm being followed",
-      'Someone tailing you at a stage, terminal, or after alighting.'),
-  dangerousDriving('dangerous-driving', 'The driver is driving dangerously',
-      'Excessive speeding, overlapping, reckless overtaking, or impaired driving.'),
-  unsure('unsure', 'Something else / not sure',
-      'Unusual disturbance, theft, baggage interference, or other safety concern.');
+  harassment('harassment'),
+  threats('threats'),
+  touching('touching'),
+  followed('followed'),
+  dangerousDriving('dangerous-driving'),
+  unsure('unsure');
 
-  const IncidentType(this.apiValue, this.label, this.description);
+  const IncidentType(this.apiValue);
   final String apiValue;
-  final String label;
-  final String description;
 }
 
 /// Values match the API's `support` field. Only the first two work today, as on the web.
+/// Titles and hints are localized in lib/l10n.
 enum SupportOption {
-  private('private', 'Submit without contacting anyone',
-      'Your report goes to SafeSignal only. Nobody else is contacted.',
-      available: true),
-  support('support', 'Show emergency and support phone numbers',
-      'Shows official national helplines for you to dial yourself. '
-          'SafeSignal does not make calls for you.',
-      available: true),
-  trustedContact('trusted-contact', 'Alert someone I trust',
-      'Automated SMS to a person you choose is in development and not '
-          'available.',
-      available: false),
-  checkIn('check-in', 'Ask for a partner check-in',
-      'Follow-up safety check-in calls by a partner organization are in '
-          'development and not available.',
-      available: false);
+  private('private', available: true),
+  support('support', available: true),
+  trustedContact('trusted-contact', available: false),
+  checkIn('check-in', available: false);
 
-  const SupportOption(this.apiValue, this.title, this.hint,
-      {required this.available});
+  const SupportOption(this.apiValue, {required this.available});
   final String apiValue;
-  final String title;
-  final String hint;
   final bool available;
 }
 
-/// Same list as the web app (`apps/frontend/src/lib/support.ts`). Verify before launch.
-const supportResources = <({String name, String detail, String tel})>[
-  (name: 'Police and emergency', detail: 'If you are in immediate danger', tel: '999'),
-  (name: 'Emergency (mobile)', detail: 'Works from any mobile network', tel: '112'),
-  (name: 'National GBV helpline', detail: 'Support after violence or harassment', tel: '1195'),
-];
+/// Same numbers as the web app (`apps/frontend/src/lib/support.ts`). Never translated;
+/// verify before launch.
+enum Helpline {
+  police('999'),
+  mobile('112'),
+  gbv('1195');
+
+  const Helpline(this.tel);
+  final String tel;
+}
 
 /// Field limits from the API schema.
 const int maxRoute = 120;

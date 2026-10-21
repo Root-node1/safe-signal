@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'api/report_api.dart';
 import 'api/submission_controller.dart';
+import 'l10n/l10n.dart';
 import 'screens/welcome_screen.dart';
 import 'theme.dart';
 
@@ -16,9 +17,14 @@ class SafeSignalApp extends StatefulWidget {
 }
 
 class _SafeSignalAppState extends State<SafeSignalApp> {
-  // Draft and submission state live in memory only.
+  // Draft and submission state live in memory only, outside the widget tree below, so
+  // changing language rebuilds the text without touching the draft or navigation.
   late final SubmissionController _controller =
       SubmissionController(api: widget.api ?? ReportApi());
+
+  /// null = follow the phone's language (Kiswahili if the phone uses it, otherwise English).
+  /// The choice is not saved to disk.
+  Locale? _locale;
 
   @override
   Widget build(BuildContext context) {
@@ -26,7 +32,13 @@ class _SafeSignalAppState extends State<SafeSignalApp> {
       title: 'SafeSignal',
       debugShowCheckedModeBanner: false,
       theme: buildSafeSignalTheme(),
-      home: WelcomeScreen(controller: _controller),
+      locale: _locale,
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
+      home: WelcomeScreen(
+        controller: _controller,
+        onLocaleChanged: (l) => setState(() => _locale = l),
+      ),
     );
   }
 }

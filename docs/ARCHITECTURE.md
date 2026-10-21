@@ -6,6 +6,7 @@
 |---|---|---|
 | Web client (React) | `apps/frontend` | Implemented; talks to the API |
 | Android client (Flutter) | `apps/mobile` | Reporting flow that submits to `POST /api/reports` (M.2A); no storage; real-device submission untested |
+| Interface languages | `apps/mobile/lib/l10n` | English and Kiswahili bundled offline (Kiswahili unreviewed); see [TRANSLATION.md](TRANSLATION.md) |
 | API (FastAPI) | `apps/backend` | Implemented |
 | Storage | in-memory or PostgreSQL | Both implemented |
 | Assistant | backend proxy to OpenRouter | Implemented; model id unverified |

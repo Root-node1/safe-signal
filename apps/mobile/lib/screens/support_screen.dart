@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../api/submission_controller.dart';
+import '../l10n/l10n.dart';
 import '../models/report_draft.dart';
 import '../navigation.dart';
 import '../theme.dart';
@@ -34,6 +35,7 @@ class _SupportScreenState extends State<SupportScreen> {
   @override
   Widget build(BuildContext context) {
     final text = Theme.of(context).textTheme;
+    final l = context.l10n;
 
     return Scaffold(
       appBar: AppBar(
@@ -47,17 +49,14 @@ class _SupportScreenState extends State<SupportScreen> {
             child: ListView(
               padding: const EdgeInsets.all(24),
               children: [
-                Text('Step 2 of 3', style: text.labelLarge),
+                Text(l.stepOf(2, 3), style: text.labelLarge),
                 const SizedBox(height: 8),
                 Semantics(
                   header: true,
-                  child: Text('What would help most?', style: text.headlineMedium),
+                  child: Text(l.supportHeading, style: text.headlineMedium),
                 ),
                 const SizedBox(height: 8),
-                Text(
-                  'Choose an option. Nothing is sent until you submit on the last step.',
-                  style: text.bodyLarge,
-                ),
+                Text(l.supportIntro, style: text.bodyLarge),
                 const SizedBox(height: 16),
                 for (final option in SupportOption.values)
                   _OptionTile(
@@ -74,7 +73,7 @@ class _SupportScreenState extends State<SupportScreen> {
                   Semantics(
                     liveRegion: true,
                     child: Text(
-                      'Choose an available option to continue.',
+                      l.chooseSupportError,
                       style: text.bodyMedium?.copyWith(
                         color: SafeSignalColors.coral,
                         fontWeight: FontWeight.w700,
@@ -82,14 +81,14 @@ class _SupportScreenState extends State<SupportScreen> {
                     ),
                   ),
                 const SizedBox(height: 24),
-                FilledButton(onPressed: _continue, child: const Text('Review')),
+                FilledButton(onPressed: _continue, child: Text(l.actionReview)),
                 const SizedBox(height: 8),
                 OutlinedButton(
                   style: OutlinedButton.styleFrom(
                     minimumSize: const Size.fromHeight(52),
                   ),
                   onPressed: () => Navigator.of(context).pop(),
-                  child: const Text('Back'),
+                  child: Text(l.actionBack),
                 ),
               ],
             ),
@@ -114,6 +113,7 @@ class _OptionTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final text = Theme.of(context).textTheme;
+    final l = context.l10n;
     final enabled = onTap != null;
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
@@ -122,8 +122,8 @@ class _OptionTile extends StatelessWidget {
         checked: selected,
         enabled: enabled,
         button: true,
-        label: '${option.title}. ${option.hint}'
-            '${enabled ? '' : ' Unavailable, in development.'}',
+        label: '${l.supportTitle(option)}. ${l.supportHint(option)}'
+            '${enabled ? '' : ' ${l.unavailableSemantics}'}',
         excludeSemantics: true,
         onTap: onTap,
         child: Material(
@@ -161,13 +161,13 @@ class _OptionTile extends StatelessWidget {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(option.title, style: text.titleMedium),
+                          Text(l.supportTitle(option), style: text.titleMedium),
                           const SizedBox(height: 2),
-                          Text(option.hint, style: text.bodyMedium),
+                          Text(l.supportHint(option), style: text.bodyMedium),
                           if (!enabled) ...[
                             const SizedBox(height: 4),
                             Text(
-                              'Unavailable · In development',
+                              l.unavailableTag,
                               style: text.bodyMedium?.copyWith(
                                 fontWeight: FontWeight.w700,
                                 color: SafeSignalColors.amberDark,

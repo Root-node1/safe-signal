@@ -74,6 +74,7 @@ Reports can contain sensitive text (route, vehicle plate, SACCO, place). Admin a
 | [docs/API.md](docs/API.md) | HTTP endpoints as implemented |
 | [docs/SECURITY.md](docs/SECURITY.md) | Controls, limits, reporting vulnerabilities |
 | [docs/ROADMAP.md](docs/ROADMAP.md) | Planned phases |
+| [docs/TRANSLATION.md](docs/TRANSLATION.md) | Languages and future translation |
 | [docs/CHECKLIST.md](docs/CHECKLIST.md) | Progress tracker |
 | [apps/backend/DATABASE.md](apps/backend/DATABASE.md) | PostgreSQL setup, migrations, backups |
 | [apps/mobile/README.md](apps/mobile/README.md) | Flutter and Android |

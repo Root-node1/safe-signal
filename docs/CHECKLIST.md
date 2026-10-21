@@ -75,19 +75,29 @@ Legend: `[x]` done with repository or test evidence; `[ ]` not done or unverifie
 - [ ] Broader device coverage (more phones and Android versions) and formal accessibility review
 - [x] M.1.5 support-option step with the four API values (two unavailable, as on the web); selection kept on back navigation and shown on review (automated)
 - [x] M.1.5 Quick Exit button on report, options, review and confirmation screens: clears the in-memory draft and calls the Android close request (automated with a mocked platform channel; real Android behaviour not device-tested; does not clear recents, screenshots or system traces)
-- [ ] Swahili copy (not decided)
+- [x] M.2C English and Kiswahili interface: official Flutter localization (ARB, `gen-l10n`), offline, home-screen language switch, draft kept when switching, API values and helpline numbers unchanged (automated: 14 tests covering both languages, errors, Quick Exit, text scale, ARB parity)
+- [ ] Independent review of all Kiswahili text by a fluent speaker (OUTSTANDING; the text is AI-written and the developer's device test does not replace a linguistic review; priorities in TRANSLATION.md)
+- [x] Developer-confirmed Kiswahili device test, Redmi A5, 10 of 10 manual checks: language switching, translated report screens, understandable categories, safety wording, emergency numbers, long-text fit, large system fonts, Quick Exit, TalkBack, draft preserved, successful synthetic API submission (manual; not a formal accessibility or linguistic review)
+- [ ] Remember the language choice across launches (needs local storage; not done on purpose)
+- [ ] Optional AI translation of user text (design only in TRANSLATION.md; no code, no backend endpoint)
+- [ ] Web app localization (web is English only)
+- [ ] Kiswahili on more devices and screen sizes
 - [x] M.2A API client (`http`), `API_BASE_URL` via `--dart-define`, Idempotency-Key per logical report (reused on unchanged retry, new on edit), submission state model, error states, `INTERNET` permission, debug-only cleartext (19 automated tests with a fake transport)
 - [x] Debug APK rebuilt with M.2A (manifest merge checked: INTERNET and debug cleartext present)
 - [x] M.2B preparation: local phone test guide and checklist in [DEVICE_TEST.md](DEVICE_TEST.md); backend health checked locally in memory mode (no device test yet)
-- [ ] M.2A real-device submission test against a local backend (pending; run DEVICE_TEST.md)
-- [ ] M.2B: assistant screen, HTTPS production endpoint, release signing, retry/offline polish (pending)
+- [x] M.2B developer-confirmed device test, Redmi A5, 7 of 7 manual checks against a local in-memory backend: successful synthetic submission with reference code; offline error with draft kept; backend unavailable handled; retry after backend restart; Quick Exit clears the draft; rapid double tap; no report content seen in inspected server logs (manual observation, not automated)
+- [x] Automated real-process test (opt-in, `SAFESIGNAL_BACKEND_IT=1 flutter test test/integration`): real Flutter client against a real in-memory uvicorn; server frozen so the client times out, resumed so the first request is accepted late, then an unchanged retry reuses the same key, returns the original reference code, and exactly one report is stored. Ran on a desktop, not on the phone
+- [ ] On-device timeout and retry (the freeze procedure in DEVICE_TEST.md) was not among the 7 confirmed checks; optional repeat
+- [ ] Phone-side checks not reported: phone storage free of report text, `adb logcat` clean (only server logs inspected)
+- [ ] Device test against PostgreSQL storage (all device tests so far used in-memory mode)
+- [ ] Later: assistant screen, HTTPS production endpoint, release signing (pending)
 - [ ] Assistant screen
 - [ ] Release signing key held outside Git; signed release build
 
 ## 8. Automated testing
 - [x] Backend unit and API tests
 - [x] PostgreSQL integration tests (run locally only)
-- [x] Flutter tests (33: 19 API/controller tests with a fake transport plus 14 UI tests: navigation, validation, back-navigation data retention, review accuracy, confirmation wording, draft cleared on Done, 2x text scale)
+- [x] Flutter tests (47 plus 1 opt-in: API/controller tests with a fake transport, 14 English UI tests and 14 localization tests; English UI tests: navigation, validation, back-navigation data retention, review accuracy, confirmation wording, draft cleared on Done, 2x text scale)
 - [ ] Frontend tests
 - [ ] End-to-end test of the report journey
 - [ ] Load test of report and assistant endpoints
@@ -117,12 +127,14 @@ Legend: `[x]` done with repository or test evidence; `[ ]` not done or unverifie
 - [ ] Web verified in browsers and with assistive technology
 - [ ] Persistent storage verified on the target server
 - [ ] Admin access path decided (real authentication)
-- [ ] Android APK verified on devices
+- [ ] Android APK verified on more devices and Android versions (one phone so far)
 - [ ] Retention and legal review complete
 - [ ] Pilot plan and safeguards agreed
 
 ## Next priorities
-1. M.2A: connect the Flutter app to the backend (see Flutter section; pending).
+1. Decide M.2B closure (see report): optional on-device timeout retry and phone-side log and storage check.
+2. Stand up PostgreSQL storage and repeat the device test against it.
+3. Production HTTPS endpoint and release signing before any non-developer testing.
 2. Run the manual browser and accessibility pass on the web app.
 3. Add a PostgreSQL service to CI so the integration tests run on every push.
 4. Decide admin authentication and the retention policy.

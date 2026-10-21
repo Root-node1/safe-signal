@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../api/submission_controller.dart';
+import '../l10n/l10n.dart';
 import '../models/report_draft.dart';
 import '../widgets/quick_exit_button.dart';
 import '../navigation.dart';
@@ -64,6 +65,7 @@ class _ReportScreenState extends State<ReportScreen> {
   @override
   Widget build(BuildContext context) {
     final text = Theme.of(context).textTheme;
+    final l = context.l10n;
 
     return Scaffold(
       appBar: AppBar(
@@ -78,22 +80,20 @@ class _ReportScreenState extends State<ReportScreen> {
               keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
               padding: const EdgeInsets.all(24),
               children: [
-                Text('Step 1 of 3', style: text.labelLarge),
+                Text(l.stepOf(1, 3), style: text.labelLarge),
                 const SizedBox(height: 8),
                 Semantics(
                   header: true,
-                  child: Text('What happened?', style: text.headlineMedium),
+                  child: Text(l.whatHappenedTitle, style: text.headlineMedium),
                 ),
                 const SizedBox(height: 16),
                 SegmentedButton<Timing>(
                   style: SegmentedButton.styleFrom(
                     minimumSize: const Size(0, 48),
                   ),
-                  segments: const [
-                    ButtonSegment(
-                        value: Timing.now, label: Text('Happening now')),
-                    ButtonSegment(
-                        value: Timing.after, label: Text('Already happened')),
+                  segments: [
+                    ButtonSegment(value: Timing.now, label: Text(l.timingNow)),
+                    ButtonSegment(value: Timing.after, label: Text(l.timingAfter)),
                   ],
                   selected: {_d.timing},
                   onSelectionChanged: (s) => setState(() => _d.timing = s.first),
@@ -101,8 +101,7 @@ class _ReportScreenState extends State<ReportScreen> {
                 if (_d.timing == Timing.now) ...[
                   const SizedBox(height: 12),
                   Text(
-                    'If you are in immediate danger, call 999 or 112. '
-                    'SafeSignal cannot send help.',
+                    l.dangerNote,
                     style: text.bodyMedium?.copyWith(
                       color: SafeSignalColors.coral,
                       fontWeight: FontWeight.w600,
@@ -125,7 +124,7 @@ class _ReportScreenState extends State<ReportScreen> {
                     child: Semantics(
                       liveRegion: true,
                       child: Text(
-                        'Choose what happened to continue.',
+                        l.chooseIncidentError,
                         style: text.bodyMedium?.copyWith(
                           color: SafeSignalColors.coral,
                           fontWeight: FontWeight.w700,
@@ -134,26 +133,19 @@ class _ReportScreenState extends State<ReportScreen> {
                     ),
                   ),
                 const SizedBox(height: 24),
-                Text('Details (optional)', style: text.titleMedium),
+                Text(l.detailsTitle, style: text.titleMedium),
                 const SizedBox(height: 4),
-                Text(
-                  'Add only what you noticed. Please do not enter names or '
-                  'phone numbers.',
-                  style: text.bodyMedium,
-                ),
+                Text(l.detailsHint, style: text.bodyMedium),
                 const SizedBox(height: 12),
-                _field(_route, 'Route or corridor', 'e.g. Ruiru to CBD', maxRoute),
-                _field(_vehicle, 'Number plate or matatu name', 'e.g. KDA 123A',
-                    maxVehicle,
+                _field(_route, l.fieldRoute, l.hintRoute, maxRoute),
+                _field(_vehicle, l.fieldVehicle, l.hintVehicle, maxVehicle,
                     capitalization: TextCapitalization.characters),
-                _field(_sacco, 'SACCO or operator', 'e.g. Super Metro', maxSacco),
-                _field(_area, 'Where did it happen?',
-                    'e.g. near Githurai 45 stage', maxArea,
-                    last: true),
+                _field(_sacco, l.fieldSacco, l.hintSacco, maxSacco),
+                _field(_area, l.fieldArea, l.hintArea, maxArea, last: true),
                 const SizedBox(height: 8),
                 FilledButton(
                   onPressed: _continue,
-                  child: const Text('Continue'),
+                  child: Text(l.actionContinue),
                 ),
                 const SizedBox(height: 8),
                 OutlinedButton(
@@ -164,7 +156,7 @@ class _ReportScreenState extends State<ReportScreen> {
                     _saveFields();
                     Navigator.of(context).pop();
                   },
-                  child: const Text('Back'),
+                  child: Text(l.actionBack),
                 ),
               ],
             ),
@@ -212,13 +204,14 @@ class _IncidentTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final text = Theme.of(context).textTheme;
+    final l = context.l10n;
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
       child: Semantics(
         inMutuallyExclusiveGroup: true,
         checked: selected,
         button: true,
-        label: '${type.label}. ${type.description}',
+        label: '${l.incidentLabel(type)}. ${l.incidentDescription(type)}',
         excludeSemantics: true,
         onTap: onTap,
         child: Material(
@@ -254,9 +247,9 @@ class _IncidentTile extends StatelessWidget {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(type.label, style: text.titleMedium),
+                          Text(l.incidentLabel(type), style: text.titleMedium),
                           const SizedBox(height: 2),
-                          Text(type.description, style: text.bodyMedium),
+                          Text(l.incidentDescription(type), style: text.bodyMedium),
                         ],
                       ),
                     ),

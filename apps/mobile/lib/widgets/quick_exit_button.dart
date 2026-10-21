@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../api/submission_controller.dart';
+import '../l10n/l10n.dart';
 
 /// Clears the in-memory draft and submission state, returns to a blank home screen, then asks Android to close the app.
 ///
@@ -24,7 +25,7 @@ class QuickExitButton extends StatelessWidget {
       padding: const EdgeInsets.only(right: 8),
       child: Semantics(
         button: true,
-        label: 'Quick exit. Clears this report and closes SafeSignal.',
+        label: context.l10n.quickExitSemantics,
         excludeSemantics: true,
         onTap: () => quickExit(context, controller),
         child: TextButton(
@@ -37,7 +38,8 @@ class QuickExitButton extends StatelessWidget {
             ),
           ),
           onPressed: () => quickExit(context, controller),
-          child: const Text('Exit', style: TextStyle(fontWeight: FontWeight.w700)),
+          child: Text(context.l10n.quickExitLabel,
+              style: const TextStyle(fontWeight: FontWeight.w700)),
         ),
       ),
     );

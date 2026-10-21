@@ -1,0 +1,125 @@
+{
+  "@@locale": "en",
+  "language": "Language",
+  "languageEnglish": "English",
+  "languageSwahili": "Kiswahili",
+  "homeTitle": "Report an incident",
+  "homeIntro": "SafeSignal helps matatu and boda-boda commuters in Kenya write down a safety incident. No account is needed, and every detail except what happened is optional.",
+  "homeReport": "Report an incident",
+  "homeReportNow": "Report what is happening now",
+  "prototypeTitle": "Early prototype",
+  "prototypeBody": "Your report is sent to SafeSignal only when you tap Submit on the last step, and nothing is saved on your phone. In this prototype, reports are stored temporarily and may be cleared.",
+  "notEmergencyTitle": "Not an emergency service",
+  "notEmergencyBody": "SafeSignal does not contact police or anyone else, and does not monitor routes or verify reports. If you are in immediate danger, call 999 or 112.",
+  "stepOf": "Step {current} of {total}",
+  "@stepOf": {
+    "placeholders": {
+      "current": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "whatHappenedTitle": "What happened?",
+  "timingNow": "Happening now",
+  "timingAfter": "Already happened",
+  "dangerNote": "If you are in immediate danger, call 999 or 112. SafeSignal cannot send help.",
+  "chooseIncidentError": "Choose what happened to continue.",
+  "detailsTitle": "Details (optional)",
+  "detailsHint": "Add only what you noticed. Please do not enter names or phone numbers.",
+  "fieldRoute": "Route or corridor",
+  "hintRoute": "e.g. Ruiru to CBD",
+  "fieldVehicle": "Number plate or matatu name",
+  "hintVehicle": "e.g. KDA 123A",
+  "fieldSacco": "SACCO or operator",
+  "hintSacco": "e.g. Super Metro",
+  "fieldArea": "Where did it happen?",
+  "hintArea": "e.g. near Githurai 45 stage",
+  "actionContinue": "Continue",
+  "actionBack": "Back",
+  "incidentHarassmentLabel": "Someone is harassing me",
+  "incidentHarassmentDesc": "Persistent verbal remarks, intimidation, or aggressive behavior.",
+  "incidentThreatsLabel": "Someone is threatening me",
+  "incidentThreatsDesc": "Direct verbal or physical threats of harm or extortion.",
+  "incidentTouchingLabel": "Unwanted touching",
+  "incidentTouchingDesc": "Non-consensual physical contact, crowding, or invasion of space.",
+  "incidentFollowedLabel": "I think I'm being followed",
+  "incidentFollowedDesc": "Someone tailing you at a stage, terminal, or after alighting.",
+  "incidentDrivingLabel": "The driver is driving dangerously",
+  "incidentDrivingDesc": "Excessive speeding, overlapping, reckless overtaking, or impaired driving.",
+  "incidentUnsureLabel": "Something else / not sure",
+  "incidentUnsureDesc": "Unusual disturbance, theft, baggage interference, or other safety concern.",
+  "supportHeading": "What would help most?",
+  "supportIntro": "Choose an option. Nothing is sent until you submit on the last step.",
+  "supportPrivateTitle": "Submit without contacting anyone",
+  "supportPrivateHint": "Your report goes to SafeSignal only. Nobody else is contacted.",
+  "supportNumbersTitle": "Show emergency and support phone numbers",
+  "supportNumbersHint": "Shows official national helplines for you to dial yourself. SafeSignal does not make calls for you.",
+  "supportTrustedTitle": "Alert someone I trust",
+  "supportTrustedHint": "Automated SMS to a person you choose is in development and not available.",
+  "supportCheckInTitle": "Ask for a partner check-in",
+  "supportCheckInHint": "Follow-up safety check-in calls by a partner organization are in development and not available.",
+  "unavailableTag": "Unavailable · In development",
+  "unavailableSemantics": "Unavailable, in development.",
+  "chooseSupportError": "Choose an available option to continue.",
+  "actionReview": "Review",
+  "reviewTitle": "Review your details",
+  "reviewIntro": "Nothing has been sent yet. Tap Submit report to send this to SafeSignal. SafeSignal is not an emergency service.",
+  "reviewRowWhen": "When",
+  "reviewRowWhat": "What happened",
+  "reviewRowSupport": "What would help most",
+  "notProvided": "Not provided",
+  "actionSubmit": "Submit report",
+  "submitting": "Submitting…",
+  "submittingSemantics": "Submitting your report",
+  "actionEdit": "Edit details",
+  "errValidation": "The server could not accept some details. Tap Edit details to check them, then try again.",
+  "errTimeout": "The server took too long to respond. Your report may or may not have arrived. You can tap Submit report again: retrying the same report will not create a duplicate while the server keeps running.",
+  "errOffline": "Could not reach SafeSignal. Check your connection and tap Submit report to try again. Your details are still here.",
+  "errRateLimited": "Too many reports from this connection. Please wait {wait} and try again.",
+  "@errRateLimited": {
+    "placeholders": {
+      "wait": {
+        "type": "String"
+      }
+    }
+  },
+  "errUnexpected": "Something went wrong on the server. Your report was not confirmed. Please try again later.",
+  "errNotConfigured": "This build of the app is not connected to a SafeSignal server, so nothing was sent.",
+  "waitSeconds": "{n} seconds",
+  "@waitSeconds": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "waitMinutes": "{n} minutes",
+  "@waitMinutes": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "waitAWhile": "a while",
+  "confirmTitle": "Report received",
+  "confirmBody": "The SafeSignal server accepted your report. In this prototype, reports are stored temporarily and may be cleared.",
+  "refCode": "Reference code",
+  "copyCode": "Copy code",
+  "codeNote": "You cannot look this code up yet, and it may stop being valid.",
+  "confirmNotice": "Nobody has been contacted. This report has not been verified, reviewed, or forwarded, and nothing is saved on your phone. SafeSignal is not an emergency service. If you are in immediate danger, call 999 or 112.",
+  "helplinesTitle": "Emergency and support numbers",
+  "helplinesIntro": "Call these yourself. SafeSignal does not make calls.",
+  "helplinePoliceName": "Police and emergency",
+  "helplinePoliceDetail": "If you are in immediate danger",
+  "helplineMobileName": "Emergency (mobile)",
+  "helplineMobileDetail": "Works from any mobile network",
+  "helplineGbvName": "National GBV helpline",
+  "helplineGbvDetail": "Support after violence or harassment",
+  "actionDone": "Done",
+  "quickExitLabel": "Exit",
+  "quickExitSemantics": "Quick exit. Clears this report and closes SafeSignal."
+}

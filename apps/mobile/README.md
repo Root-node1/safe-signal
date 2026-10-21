@@ -4,9 +4,12 @@ Native Android client for reporting. It walks through home, report, support opti
 then submits to the existing FastAPI endpoint `POST /api/reports` (M.2A). Nothing is saved on the
 phone and there are no accounts, analytics, maps or background sync. **A report is only shown as
 received after the server returns a reference code**; any failure keeps the draft on screen for
-a manual retry. Real-device submission testing is still pending (see below).
+a manual retry. Submission has been tested by the developer on one phone against a local in-memory backend (see Tests).
 
 Package ID: `com.safesignal.app` · Display name: SafeSignal
+
+## Languages
+English and Kiswahili, bundled offline (`lib/l10n/app_en.arb`, `app_sw.arb`; official `flutter_localizations` and generated code). The app follows the phone's language and the home screen has a language switch; switching keeps the draft and the choice is not saved. API values and helpline numbers are never translated. After editing ARB files run `flutter gen-l10n`; the generated `lib/l10n/app_localizations*.dart` files are committed (regenerating is reproducible, and `flutter build` also regenerates them because `generate: true` is set). The Kiswahili text is AI-written and passed the developer's 10-check test on one phone, but **still needs independent review by a fluent speaker**; see [docs/TRANSLATION.md](../../docs/TRANSLATION.md), which also describes the (inactive) plan for optional AI translation of user text.
 
 ## Configuration
 The server address is set at build time and is never hard-coded:
@@ -41,7 +44,9 @@ export PATH=$HOME/.local/bin:$HOME/flutter/bin:$ANDROID_HOME/cmdline-tools/lates
 Check with `flutter doctor -v`. The Chrome and Linux-desktop warnings can be ignored.
 
 ## Tests
-`flutter test` runs 33 tests (fake HTTP transport; no live server) covering the request contract, status-code mapping, timeouts and offline, idempotency-key reuse, double taps, draft preservation, plus the 14 UI tests covering navigation, required-field validation (incident type and support option), data kept when going back, review accuracy, confirmation wording, unavailable options, helplines, Quick Exit, and 2x text scale. The developer has tested the M.1 and M.1.5 screens on a physical Android phone (manual checks only; not a formal accessibility or security audit).
+`flutter test` runs 47 tests (plus 1 opt-in integration test, skipped by default; 14 of them cover Kiswahili, language switching, ARB completeness and the unchanged API payload) (fake HTTP transport; no live server) covering the request contract, status-code mapping, timeouts and offline, idempotency-key reuse, double taps, draft preservation, plus the 14 UI tests covering navigation, required-field validation (incident type and support option), data kept when going back, review accuracy, confirmation wording, unavailable options, helplines, Quick Exit, and 2x text scale. The developer has tested the M.1 and M.1.5 screens on a physical Android phone (manual checks only; not a formal accessibility or security audit).
+
+Opt-in integration test with a real backend process (needs `apps/backend/venv`; in-memory, loopback only, synthetic data): `SAFESIGNAL_BACKEND_IT=1 flutter test test/integration`. It freezes the server so the client times out, resumes it, retries the unchanged report, and checks the same key, the original reference code and exactly one stored report. It runs on the desktop, not on the phone.
 
 ## Support options
 Same four values and wording as the web app and API (`private`, `support`, `trusted-contact`, `check-in`). Only the first two can be chosen; the other two are shown as unavailable and in development. Choosing "Show emergency and support phone numbers" lists the national helplines on the confirmation screen as text to dial yourself (the number list is copied from the web app and must be verified before launch). Choosing "Alert someone I trust" is not possible yet and would not send anything automatically.
@@ -52,7 +57,7 @@ Every reporting screen has an "Exit" button in the top bar. It clears the in-mem
 Limits: it cannot erase Android's recent-apps preview or screenshots, keyboard suggestions or history, device backups, or anything else outside SafeSignal's memory. Android may keep the app process alive in the background. There is no keyboard shortcut. Tell users to also clear the app from the recents screen if they need to hide that they used it.
 
 ## Device testing checklist
-M.1/M.1.5 UI checks were completed by the developer. **Real-device submission to a backend (M.2A) has not been tested yet**; add: submit with Wi-Fi on, with the server stopped, in airplane mode, and a retry after a timeout (one report only).
+M.1/M.1.5 UI checks were completed by the developer. The developer also confirmed 7 of 7 submission checks on a Redmi A5 against a local in-memory backend (success with reference code, offline, backend down, retry after restart, Quick Exit, double tap, no content in server logs). Not yet done on a device: the timeout retry, phone-side log and storage checks, and any run against PostgreSQL. See [docs/DEVICE_TEST.md](../../docs/DEVICE_TEST.md).
 Completed once by the developer on one phone (8 of 8 checks passed). Repeat on other devices and Android versions:
 Install the debug APK, then check: all steps end to end; Exit from each screen (draft gone when reopened); TalkBack reads the option cards, errors and the Exit button; Android font size at the largest setting; "Remove animations" on; rotate the phone; open the keyboard on the details fields.
 

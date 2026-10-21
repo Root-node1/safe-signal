@@ -1,15 +1,21 @@
 import 'package:flutter/material.dart';
 
 import '../api/submission_controller.dart';
+import '../l10n/l10n.dart';
 import '../models/report_draft.dart';
 import '../navigation.dart';
 import '../theme.dart';
 import 'report_screen.dart';
 
 class WelcomeScreen extends StatelessWidget {
-  const WelcomeScreen({super.key, required this.controller});
+  const WelcomeScreen({
+    super.key,
+    required this.controller,
+    required this.onLocaleChanged,
+  });
 
   final SubmissionController controller;
+  final ValueChanged<Locale> onLocaleChanged;
   ReportDraft get draft => controller.draft;
 
   void _start(BuildContext context, Timing timing) {
@@ -22,6 +28,8 @@ class WelcomeScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final text = Theme.of(context).textTheme;
+    final l = context.l10n;
+    final code = Localizations.localeOf(context).languageCode;
 
     return Scaffold(
       appBar: AppBar(
@@ -38,23 +46,33 @@ class WelcomeScreen extends StatelessWidget {
               padding: const EdgeInsets.all(24),
               children: [
                 Semantics(
+                  container: true,
+                  label: l.language,
+                  child: SegmentedButton<String>(
+                    style: SegmentedButton.styleFrom(minimumSize: const Size(0, 48)),
+                    showSelectedIcon: false,
+                    segments: [
+                      ButtonSegment(value: 'en', label: Text(l.languageEnglish)),
+                      ButtonSegment(value: 'sw', label: Text(l.languageSwahili)),
+                    ],
+                    selected: {code == 'sw' ? 'sw' : 'en'},
+                    onSelectionChanged: (s) => onLocaleChanged(Locale(s.first)),
+                  ),
+                ),
+                const SizedBox(height: 20),
+                Semantics(
                   header: true,
                   child: Text(
-                    'Report an incident',
+                    l.homeTitle,
                     style: text.headlineMedium,
                   ),
                 ),
                 const SizedBox(height: 12),
-                Text(
-                  'SafeSignal helps matatu and boda-boda commuters in Kenya '
-                  'write down a safety incident. No account is needed, and '
-                  'every detail except what happened is optional.',
-                  style: text.bodyLarge,
-                ),
+                Text(l.homeIntro, style: text.bodyLarge),
                 const SizedBox(height: 24),
                 FilledButton(
                   onPressed: () => _start(context, Timing.after),
-                  child: const Text('Report an incident'),
+                  child: Text(l.homeReport),
                 ),
                 const SizedBox(height: 8),
                 TextButton(
@@ -63,27 +81,22 @@ class WelcomeScreen extends StatelessWidget {
                     foregroundColor: SafeSignalColors.coral,
                   ),
                   onPressed: () => _start(context, Timing.now),
-                  child: const Text('Report what is happening now'),
+                  child: Text(l.homeReportNow),
                 ),
                 const SizedBox(height: 24),
                 _Notice(
                   background: SafeSignalColors.amberSubtle,
                   border: SafeSignalColors.amber,
-                  title: 'Early prototype',
+                  title: l.prototypeTitle,
                   titleColor: SafeSignalColors.amberDark,
-                  body: 'Your report is sent to SafeSignal only when you tap '
-                      'Submit on the last step, and nothing is saved on your '
-                      'phone. In this prototype, reports are stored '
-                      'temporarily and may be cleared.',
+                  body: l.prototypeBody,
                 ),
                 const SizedBox(height: 16),
-                const _Notice(
+                _Notice(
                   background: SafeSignalColors.coralSubtle,
-                  title: 'Not an emergency service',
+                  title: l.notEmergencyTitle,
                   titleColor: SafeSignalColors.coral,
-                  body: 'SafeSignal does not contact police or anyone else, '
-                      'and does not monitor routes or verify reports. If you '
-                      'are in immediate danger, call 999 or 112.',
+                  body: l.notEmergencyBody,
                 ),
               ],
             ),
