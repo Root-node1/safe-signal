@@ -28,7 +28,7 @@ Legend: `[x]` done with repository or test evidence; `[ ]` not done or unverifie
 - [x] Report and admin rate limiting (automated)
 - [x] Fail-closed admin authorisation (automated)
 - [x] Generic 503 on database failure (automated)
-- [x] Backend suite: 56 pass without database; 64 pass, 0 skipped with test database
+- [x] Backend suite: 86 pass without a database (the PostgreSQL module skips, 1 expected failure from the M.4 scope check); 94 pass against a disposable `postgres:18` database, 0 skipped
 - [x] Ruff clean (`ruff check .`)
 - [ ] Proxy-aware client identity configured and tested
 - [ ] Pagination for admin list
@@ -40,8 +40,8 @@ Legend: `[x]` done with repository or test evidence; `[ ]` not done or unverifie
 - [x] Transactional idempotency and code-collision retry (automated, local PG 18)
 - [x] Persistence across pool reinitialisation (automated, local PG 18)
 - [x] Production refuses to start without `DATABASE_URL` (automated)
-- [ ] Tests in CI with a PostgreSQL service container (CI currently skips them)
-- [ ] Verified on PostgreSQL 16 or the chosen server version
+- [x] Tests in CI with a PostgreSQL service container: `postgres:18` service with a health check, a disposable `safesignal_test` database created by the job, `TEST_DATABASE_URL` set for the backend job (`.github/workflows/ci.yml`). Verified locally against a disposable `postgres:18` container — 94 pass, 0 skipped, three consecutive runs. The first CI run on a push is still to confirm the log.
+- [ ] Verified on PostgreSQL 16 or the chosen server version — the suite now runs against PostgreSQL 18 in CI and locally; the *chosen server's* version is still unverified (D-E, T-31)
 - [ ] Least-privilege roles created on the server (production verification)
 - [ ] Backup and restore tested (production verification)
 - [ ] Retention, deletion and idempotency-key expiry policy decided and implemented
@@ -105,7 +105,7 @@ Legend: `[x]` done with repository or test evidence; `[ ]` not done or unverifie
 ## 9. CI/CD
 - [x] GitHub Actions: frontend lint and build; backend ruff and pytest
 - [ ] CI for Flutter analyze and test
-- [ ] CI PostgreSQL service
+- [x] CI PostgreSQL service: `postgres:18` with a health check; the integration suite runs in the backend job instead of skipping
 - [ ] Automated deployment (not started)
 
 ## 10. VPS deployment

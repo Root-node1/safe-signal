@@ -48,4 +48,5 @@ allowance is consumed without a stored report. The client's retry (same key) is 
 
 ## Retention
 No automatic deletion of reports or idempotency keys yet; policy pending approval.
+The decision record is [docs/RETENTION.md](../../docs/RETENTION.md); no period is decided there yet.
 Operators can delete one report by code: `DELETE FROM reports WHERE code = 'SS-XXXX-XXXX'`.
