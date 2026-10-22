@@ -748,13 +748,18 @@ void main() {
       final savedKeyForB = (await store.read())!.key;
       expect(controller.currentKey, savedKeyForB);
 
-      // The late response for A is applied to the controller, but it cannot
-      // overwrite the saved identity of B: the record still holds B's key.
+      // The late response for A cannot overwrite the saved identity of B: the
+      // record still holds B's key, and the outcome is distinguishable from
+      // the ordinary success so that nothing presents A's result as B's.
       gate.complete(http.Response(jsonEncode({'code': 'SS-ABCD-2345'}), 201));
       await inFlight;
 
       expect((await store.read())!.key, savedKeyForB);
-      expect(controller.state, isA<Succeeded>());
+      expect(controller.state, isA<SucceededButDraftChanged>());
+      expect((controller.state as SucceededButDraftChanged).code, 'SS-ABCD-2345');
+      // B is untouched: its draft, its key and its record all survive.
+      expect(controller.draft.route, 'Jogoo Road');
+      expect(controller.currentKey, savedKeyForB);
     });
   });
 

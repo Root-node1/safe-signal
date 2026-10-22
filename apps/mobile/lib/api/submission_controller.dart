@@ -26,6 +26,19 @@ class Succeeded extends SubmissionState {
   final SupportOption? support;
 }
 
+/// An earlier submission was accepted after the draft had changed.
+///
+/// The report was filed and its reference code is kept, but the draft on screen
+/// is a different one: it is left untouched, with its own key and its own saved
+/// record. This is deliberately **not** a [Succeeded] state, so nothing treats
+/// the older report as the current draft — the review screen does not navigate
+/// to a confirmation screen for it, and the newer draft is not cleared.
+class SucceededButDraftChanged extends SubmissionState {
+  const SucceededButDraftChanged(this.code, this.support);
+  final String code;
+  final SupportOption? support;
+}
+
 class ValidationFailed extends SubmissionState {
   const ValidationFailed();
 }
@@ -156,6 +169,9 @@ class SubmissionController extends ChangeNotifier {
     }
     final body = ReportApi.payload(draft);
     final signature = jsonEncode(body);
+    // Captured before the request is sent: it describes the report that was
+    // sent, even if the draft changes while the request is in flight.
+    final submittedSupport = draft.support;
     if (_key == null || _signature != signature) {
       _key = newIdempotencyKey();
       _signature = signature;
@@ -166,8 +182,21 @@ class SubmissionController extends ChangeNotifier {
     final outcome = await api.submit(body, _key!);
     if (ticket != _ticket) return; // reset (Quick Exit / Done) while in flight
 
+    // The draft may have changed while the request was in flight. The result
+    // still belongs to the report that was sent, so it is never applied to a
+    // newer draft as if it were that draft's result.
+    final draftChanged = jsonEncode(ReportApi.payload(draft)) != signature;
+
     switch (outcome) {
       case SubmitAccepted(:final code):
+        if (draftChanged) {
+          // The report that was sent is not the draft on screen. Keep the code,
+          // keep the newer draft, its key and its saved record, and do not
+          // navigate to a confirmation screen that would present the older
+          // report as the current one.
+          _set(SucceededButDraftChanged(code, submittedSupport));
+          return;
+        }
         final support = draft.support;
         _forget();
         draft.clear();
@@ -179,10 +208,12 @@ class SubmissionController extends ChangeNotifier {
       case SubmitNetworkFailure(:final timedOut):
         _set(NetworkFailed(timedOut: timedOut));
       case SubmitUnexpected(:final keyConflict):
-        if (keyConflict) _forget(); // next attempt must use a fresh key
+        // A key conflict only invalidates the key that was used for this
+        // request. A newer draft keeps its own key.
+        if (keyConflict && !draftChanged) _forget();
         _set(const UnexpectedResponse());
       case SubmitNotConfigured():
-        _forget();
+        if (!draftChanged) _forget();
         _set(const NotConfigured());
     }
   }
@@ -318,7 +349,10 @@ class SubmissionController extends ChangeNotifier {
 
   /// Drop an old failure message when the user opens the review screen again.
   void acknowledgeFailure() {
-    if (_state is! Submitting && _state is! Succeeded && _state is! Idle) {
+    if (_state is! Submitting &&
+        _state is! Succeeded &&
+        _state is! SucceededButDraftChanged &&
+        _state is! Idle) {
       _set(const Idle());
     }
   }

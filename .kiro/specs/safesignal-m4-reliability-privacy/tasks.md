@@ -919,15 +919,26 @@ back to A again can generate a new key for A. A changed payload is a new logical
 the existing policy (design § 5.1: content changed → new key), so the key issued for A is not
 recovered; the report is still one logical report at a time, and T-19 deletes the record after a
 confirmed submission.
-**OPEN — a stale completion can discard newer work.** An earlier in-flight submission can complete
-after the user has edited and saved a newer draft. The earlier success may clear the newer
-in-memory draft even though the newer pending record remains stored. The controller/UI integration
-must prevent this stale completion from discarding newer work. It is **not resolved** by this task:
-`submit()` is unchanged, and a late response is still applied to the controller as it stands — it
-clears the draft and sets the submission state. What it cannot do is overwrite the *saved*
-identity: the stored record keeps the key it was written with, so the newer work is recoverable by
-restoring it. Preventing the stale completion itself belongs to the controller/UI integration and
-needs its own decision.
+**Stale submission responses — corrected at the controller level (22 October 2026), with the
+user-facing part still open.** An earlier in-flight submission could complete after the user had
+edited or saved a newer draft, and the earlier success then cleared the newer in-memory draft and
+presented the older report as the current one. `submit()` now compares the signature of the request
+it sent with the signature of the draft on hand when the response arrives. When they differ, the
+result is **not** applied to the newer draft: the newer draft, its key and its saved record are left
+intact, and the earlier report's confirmation code is preserved in a new, distinguishable
+`SucceededButDraftChanged` state — deliberately not a `Succeeded` state, so the review screen does
+not navigate to a confirmation screen that would present the older report as the current one. A late
+failure keeps the ordinary failure semantics, and a key conflict no longer takes a newer draft's
+key. The ordinary path — an unchanged draft — is untouched, and the earlier report's code is never
+discarded. **Still open, for the UI and localisation tasks (T-16, T-18, T-20):** the app does not
+yet *tell* the user that an earlier report was filed while their draft has moved on; that needs a
+banner and an announcement in both locales, and the string set is due in T-20. **Also open for
+T-19:** deleting the pending record after a confirmed success must not delete a *newer* record when
+the success that arrived was stale. **Also open, and not part of this correction:** the system back
+gesture is still unguarded while a submission is in flight — the review screen disables its own Back
+button, but `appRoute` sets no `canPop`, so the user can return to the report screen and change the
+draft mid-request. The controller now keeps that newer work safe, but blocking the gesture would
+remove the path at its source and is a separate decision.
 
 **Objective:** Teach `SubmissionController` about the pending report: saving it, restoring it, and
 restoring the **key** with it.
