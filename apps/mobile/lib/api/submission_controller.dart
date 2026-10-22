@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 
 import '../models/report_draft.dart';
+import '../storage/pending_draft.dart';
 import '../storage/pending_draft_store.dart';
 import 'report_api.dart';
 
@@ -45,6 +46,57 @@ class UnexpectedResponse extends SubmissionState {
 
 class NotConfigured extends SubmissionState {
   const NotConfigured();
+}
+
+/// The result of saving the pending report.
+sealed class SaveOutcome {
+  const SaveOutcome();
+}
+
+/// The record was written. Nothing about it is reported back: the key and the
+/// payload never leave the controller.
+final class SaveSucceeded extends SaveOutcome {
+  const SaveSucceeded();
+}
+
+/// The draft was not complete enough to submit, so nothing was saved. Saving
+/// is offered only when the draft would submit (FR-1.4).
+final class SaveRefused extends SaveOutcome {
+  const SaveRefused(this.reason);
+
+  /// Why nothing was saved. Never contains report content.
+  final String reason;
+}
+
+/// The result of restoring the pending report.
+sealed class RestoreOutcome {
+  const RestoreOutcome();
+}
+
+/// Nothing was stored, so there is nothing to restore.
+final class RestoreNothingSaved extends RestoreOutcome {
+  const RestoreNothingSaved();
+}
+
+/// The stored record had expired. It was deleted and nothing was restored
+/// (FR-4.2, FR-4.3).
+final class RestoreExpired extends RestoreOutcome {
+  const RestoreExpired(this.createdAt);
+
+  /// When the report was saved, so the user can be told. Never report content.
+  final DateTime createdAt;
+}
+
+/// The stored record could not be trusted. It was deleted and nothing was
+/// restored; the user is told it could not be read (SR-4.2, SR-4.3, RR-4.2).
+final class RestoreCorrupt extends RestoreOutcome {
+  const RestoreCorrupt();
+}
+
+/// The record was restored: the draft, the idempotency key and the payload
+/// signature are back in place.
+final class RestoreSucceeded extends RestoreOutcome {
+  const RestoreSucceeded();
 }
 
 /// Owns the in-memory draft and one logical submission. State lives in memory only.
@@ -154,6 +206,114 @@ class SubmissionController extends ChangeNotifier {
     final outcome = await store.readOrDiscardAt(_clock());
     _pendingOutcome = outcome;
     return outcome;
+  }
+
+  /// Saves the current draft as the pending report.
+  ///
+  /// Saving is refused unless the draft would submit — an incident type and a
+  /// support choice are chosen (FR-1.4). The stored record holds the exact
+  /// payload that would be sent, the idempotency key issued for that payload,
+  /// the creation time and the expiry time (FR-1.3, FR-1.2).
+  ///
+  /// The key written is the controller's current key when that key was issued
+  /// for this exact payload; otherwise a key is generated for the record.
+  ///
+  /// Saving does not modify the in-memory draft or the in-flight submission
+  /// state, and it never replaces a key the controller already holds. When the
+  /// controller holds no key at all, the key the record now carries is
+  /// installed — but only after the record has been written successfully, so a
+  /// failed write leaves the controller exactly as it was (FR-1.5 as amended).
+  ///
+  /// That last step is what keeps a saved report and a same-session submission
+  /// of identical content on one key. With two keys, an ambiguous outcome
+  /// followed by a restart and a restore would send the retry under a second
+  /// key, and the server would store a second report for the same content
+  /// (RR-3.1).
+  Future<SaveOutcome> savePending() async {
+    final store = pendingStore;
+    if (store == null) {
+      return const SaveRefused('saving is not available on this device');
+    }
+    if (draft.incident == null || draft.support == null) {
+      return const SaveRefused('the report is not finished yet');
+    }
+
+    final body = ReportApi.payload(draft);
+    final signature = jsonEncode(body);
+    // The current key applies only while it was issued for this exact payload;
+    // an edited report is a different logical report and gets its own key.
+    final keyAppliesToThisPayload = _key != null && _signature == signature;
+    final candidate = keyAppliesToThisPayload ? _key! : newIdempotencyKey();
+    final createdAt = _clock();
+    final record = PendingDraft(
+      payload: body,
+      key: candidate,
+      createdAt: createdAt.millisecondsSinceEpoch,
+      expiresAt: PendingDraft.expiryFor(createdAt),
+    );
+
+    await store.write(record);
+
+    // Only now that the record is safely stored. The controller's key always
+    // belongs to the payload it is working on: when the current key applies to
+    // this payload it is kept, and otherwise the key the record now carries is
+    // installed. Either way the saved report and the next submission of the
+    // same content share one key, so an ambiguous outcome followed by a restart
+    // and a restore cannot send the retry under a second key (FR-1.5 as
+    // amended, RR-3.1). A request already in flight is unaffected: it captured
+    // its own key and body before it was sent.
+    _key = candidate;
+    _signature = signature;
+    return const SaveSucceeded();
+  }
+
+  /// Restores the pending report: the draft, the idempotency key and the
+  /// payload signature.
+  ///
+  /// Installing the stored signature alongside the stored key is what makes the
+  /// first submit after a restore reuse that exact key (FR-2.3, RR-2.1,
+  /// RR-3.2). Without it the next submit would see a missing or mismatched
+  /// signature and mint a new key.
+  ///
+  /// An absent, expired or corrupt record gives its own outcome and restores
+  /// nothing. A storage failure is raised, so it stays distinguishable from
+  /// corruption and is never treated as "there was nothing saved".
+  Future<RestoreOutcome> restorePending() async {
+    final PendingDraftReadOutcome outcome;
+    try {
+      outcome = await readPendingReport();
+    } on PendingDraftCorrupt {
+      // The record was deleted by the read; the user is told it could not be
+      // read (SR-4.2).
+      return const RestoreCorrupt();
+    }
+
+    switch (outcome) {
+      case PendingDraftAbsent():
+        return const RestoreNothingSaved();
+      case PendingDraftExpired(:final createdAt):
+        return RestoreExpired(createdAt);
+      case PendingDraftAvailable(draft: final stored):
+        draft.restoreFrom(stored.payload);
+        _key = stored.key;
+        _signature = jsonEncode(stored.payload);
+        return const RestoreSucceeded();
+    }
+  }
+
+  /// Discards the pending report: the stored record is deleted, and the
+  /// in-memory draft and key are cleared.
+  ///
+  /// The record is deleted first. If the deletion fails, the failure is raised
+  /// and nothing is cleared, so the report is never reported as discarded when
+  /// it is still stored (RR-4.3).
+  Future<void> discardPending() async {
+    final store = pendingStore;
+    if (store != null) {
+      await store.delete();
+    }
+    _forget();
+    draft.clear();
   }
 
   /// Drop an old failure message when the user opens the review screen again.

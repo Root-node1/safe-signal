@@ -64,8 +64,22 @@ expiry timestamp.
 and support choice chosen), matching the condition under which `SubmissionController.submit()` would
 proceed today.
 
-**FR-1.5** Saving shall not modify the in-memory draft, the in-flight submission state, or the
-idempotency key held by the controller.
+**FR-1.5** Saving shall not modify the in-memory draft or the in-flight submission state. Saving shall
+not replace a controller idempotency key that was issued for the payload being saved. A key for the
+payload being saved — the controller's current key when that key applies to it, otherwise a newly
+generated one — may be installed together with its payload signature, but only after the pending
+record has been successfully written.
+
+Rationale: a saved report and a same-session submission of identical content must share one
+idempotency key. If the saved record carried one key and the same-session submission another, an
+ambiguous outcome (the request may or may not have reached the server) followed by a restart and a
+restore would send the retry under a second key, and the server would treat it as a second logical
+report — two stored reports for one report, with no change by the user (RR-3.1). The key is
+therefore installed only after the record is safely stored, so a failed write leaves the controller
+exactly as it was. The controller's key always belongs to the content it is working on: a key that
+was issued for different content is not reused for the saved payload, because a changed report is a
+new logical submission under the existing key policy. A request already in flight is unaffected, as
+it captures its own key and payload before it is sent.
 
 → Task T-10, T-11, T-15
 

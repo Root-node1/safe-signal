@@ -850,6 +850,85 @@ kept; one just outside is deleted.
 
 ## Task 15 — Integrate the pending report with the submission controller
 
+**Status:** complete — implemented, corrected by founder decision, and verified by automated tests
+(22 October 2026).
+**FR-1.5 was amended twice by founder decision (22 October 2026)** to close the confirmed
+duplicate-report edge case. It now reads: *saving shall not modify the in-memory draft or the
+in-flight submission state; saving shall not replace a controller idempotency key that was issued
+for the payload being saved; and a key for the payload being saved — the controller's current key
+when that key applies to it, otherwise a newly generated one — may be installed together with its
+payload signature, but only after the pending record has been successfully written.* The rationale is
+recorded with the requirement: a saved report and a same-session submission of identical content must
+share one idempotency key, because with two keys an ambiguous outcome followed by a restart and a
+restore would send the retry under a second key and the server would store a second report for the
+same content (RR-3.1). T-15's acceptance criterion was amended to match.
+`SubmissionController` can now save, restore and discard the pending report. `savePending()` refuses
+unless the draft would submit — an incident type and a support choice are chosen (FR-1.4) — writes
+the canonical `ReportApi.payload(draft)` map with the controller's current key when that key was
+issued for this exact payload, and with a newly generated key otherwise, together with the creation
+time and the expiry time (FR-1.3, FR-1.2). It touches neither the in-memory draft nor the
+in-flight submission state, and it never replaces a key that was issued for the payload being
+saved. **After the record has been written successfully, the controller installs the key for that
+payload together with the matching signature** — the current key when it applies, otherwise the key
+the record now carries — so the next submit of the same content reuses it instead of minting another
+one, and the controller's key always belongs to the content it is working on. A failed write leaves
+the controller's key and signature exactly as they were.
+`restorePending()` reads through the expiry-aware path, then restores the draft fields
+from the stored payload (FR-2.2) **and installs the stored key together with the stored payload
+signature** (FR-2.3, RR-2.1, RR-3.2) — the load-bearing step, because without the signature the
+next submit would see a missing or mismatched signature and mint a new key.
+`discardPending()` deletes the record first and only then clears the draft and the key, so a failed
+deletion is raised and never reported as a discard that happened (RR-4.3). The outcomes are
+`SaveSucceeded` / `SaveRefused` and `RestoreSucceeded` / `RestoreNothingSaved` / `RestoreExpired` /
+`RestoreCorrupt`; none of them carries the payload or the key, so nothing sensitive can leak through
+them. A corrupt record gives `RestoreCorrupt` (it was deleted by the read), while an unreachable
+store still raises `PendingDraftUnavailable`, so storage failure stays distinguishable from
+corruption and is never reported as "there was nothing saved" (SR-4.2, SR-4.3). No timer, no
+connectivity listener and no automatic submission was added (RR-5.1, RR-5.2).
+`apps/mobile/lib/models/report_draft.dart` gained only the payload → draft mapping helper: unknown
+or missing values are ignored rather than fatal, so a record written by another version cannot crash
+the app.
+Tests: `apps/mobile/test/pending_report_controller_test.dart` (new, 25 tests) covers save and
+restore with an identical payload and key; restore followed by a submission using the same key and
+the same body bytes; an edit after restore minting a new key; an unchanged restored report reusing
+the stored key on retry; an explicit discard; the expired, corrupt and unavailable cases; failed
+write and failed delete operations; no submission without an explicit call; and the outcomes
+carrying neither the payload nor the key. **The corrected sequence is covered by a regression test:**
+save → the record carries key A and the controller holds key A → submit sends key A and the saved
+body → the outcome is ambiguous (the request may or may not have reached the server) and the record
+is kept → a new controller represents the restart → the restore adopts key A and sends nothing by
+itself → the retry sends key A with the same body, so every attempt of the report used one key and
+the server sees one logical submission. The test also checks that a failed write leaves the
+controller keyless, that saving preserves an existing controller key, that an edit after a save
+generates a new key, and that saving changes neither the draft nor the submission state.
+Verification: `flutter analyze --fatal-infos` → **no issues**; `flutter test` → **299 passed, 1
+skipped** (the opt-in integration test, unchanged; 270 before this task, 291 before the first
+FR-1.5 correction, 295 before the second). The T-13 and T-14 suites are green (44 tests). The React
+and backend suites are unaffected — the backend's T-04 citation into `submission_controller.dart`
+still resolves, so no citation needed correcting by this change.
+**Remaining integration work, deliberately not done here:** the restore prompt and its wording
+(T-16), the discard control and its wording (T-17), deleting the record on success and on Quick Exit
+(T-19), and passing the real keystore-backed store to the controller from the app's startup path —
+until that is done, `readPendingReport()` and `restorePending()` report `PendingDraftAbsent` in the
+running app. The app also has no "replace or keep" question yet: FR-1.1 requires the user to be
+offered a choice when a record already exists, which belongs to the T-16/T-17 screens. On-device
+verification remains T-31.
+**The A → B → A consequence, accepted under the existing key policy:** because the controller's key
+always belongs to the content it is working on, editing a report from payload A to payload B and
+back to A again can generate a new key for A. A changed payload is a new logical submission under
+the existing policy (design § 5.1: content changed → new key), so the key issued for A is not
+recovered; the report is still one logical report at a time, and T-19 deletes the record after a
+confirmed submission.
+**OPEN — a stale completion can discard newer work.** An earlier in-flight submission can complete
+after the user has edited and saved a newer draft. The earlier success may clear the newer
+in-memory draft even though the newer pending record remains stored. The controller/UI integration
+must prevent this stale completion from discarding newer work. It is **not resolved** by this task:
+`submit()` is unchanged, and a late response is still applied to the controller as it stands — it
+clears the draft and sets the submission state. What it cannot do is overwrite the *saved*
+identity: the stored record keeps the key it was written with, so the newer work is recoverable by
+restoring it. Preventing the stale completion itself belongs to the controller/UI integration and
+needs its own decision.
+
 **Objective:** Teach `SubmissionController` about the pending report: saving it, restoring it, and
 restoring the **key** with it.
 
@@ -886,7 +965,10 @@ restoring the **key** with it.
 
 - Save → restore → submit sends the **same** `Idempotency-Key` and the **same** body bytes.
 - Save → restore → edit one field → submit mints a new key (the content is a different report).
-- Save does not change the controller's current key.
+- Save does not replace a key that was issued for the payload being saved; the key for the saved
+  payload — the controller's current key when it applies, otherwise a newly generated one — is
+  installed together with its payload signature **after** the record has been written, so a
+  same-session submission of the same content uses the same key (FR-1.5 as amended, RR-3.1).
 - No code path submits without an explicit call.
 
 **Automated verification:** unit tests against the in-memory store:

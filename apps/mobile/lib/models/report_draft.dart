@@ -70,3 +70,51 @@ class ReportDraft {
     sacco = '';
   }
 }
+
+/// Restores a draft from a stored payload.
+///
+/// The payload is the canonical map `ReportApi.payload` produced, so restoring
+/// it and building the payload again yields the same map — and therefore the
+/// same signature, so the stored idempotency key is reused (FR-2.2, FR-2.3,
+/// RR-2.3).
+///
+/// Values that are missing or not understood are ignored rather than fatal: a
+/// record written by another version must not crash the app (SR-4.2, SR-4.3).
+extension ReportDraftRestore on ReportDraft {
+  /// Populates the draft from a stored [payload].
+  void restoreFrom(Map<String, Object?> payload) {
+    timing = _timingFrom(payload['timing']) ?? timing;
+    incident = _incidentFrom(payload['incident']);
+    support = _supportFrom(payload['support']);
+    route = _textFrom(payload['route']) ?? route;
+    area = _textFrom(payload['area']) ?? area;
+    vehicle = _textFrom(payload['vehicle']) ?? vehicle;
+    sacco = _textFrom(payload['sacco']) ?? sacco;
+  }
+}
+
+Timing? _timingFrom(Object? value) {
+  if (value is! String) return null;
+  for (final timing in Timing.values) {
+    if (timing.apiValue == value) return timing;
+  }
+  return null;
+}
+
+IncidentType? _incidentFrom(Object? value) {
+  if (value is! String) return null;
+  for (final incident in IncidentType.values) {
+    if (incident.apiValue == value) return incident;
+  }
+  return null;
+}
+
+SupportOption? _supportFrom(Object? value) {
+  if (value is! String) return null;
+  for (final support in SupportOption.values) {
+    if (support.apiValue == value) return support;
+  }
+  return null;
+}
+
+String? _textFrom(Object? value) => value is String ? value : null;

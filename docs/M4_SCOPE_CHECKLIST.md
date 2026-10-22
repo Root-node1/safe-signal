@@ -419,7 +419,7 @@ Each claim below was read in the document and then checked in the implementation
 | # | Claim in the notice | Checked against | Result |
 |---|---|---|---|
 | 1 | The web app writes only `safesignal-theme` to browser storage | `apps/frontend/src/lib/theme.ts:3`, `apps/frontend/src/lib/theme.ts:28` — the only storage calls in the whole web app | **HOLDS** |
-| 2 | The Android app writes nothing about the report to the device | No storage package in `apps/mobile/pubspec.yaml:30`; no file write in the app; the draft is in memory only (`apps/mobile/lib/api/submission_controller.dart:50`) | **HOLDS** |
+| 2 | The Android app writes nothing about the report to the device | No storage package in `apps/mobile/pubspec.yaml:30`; no file write in the app; the draft is in memory only (`apps/mobile/lib/api/submission_controller.dart:102`) | **HOLDS** |
 | 3 | Android's automatic backup is not switched off for this app | `apps/mobile/android/app/src/main/AndroidManifest.xml:4` — no `android:allowBackup` attribute, so the platform default stands | **HOLDS** (the notice is correct, and T-22 will change this) |
 | 4 | The clipboard is written, never read or cleared | `apps/mobile/lib/screens/confirmation_screen.dart:84` writes; no read or clear anywhere | **HOLDS** |
 | 5 | No GPS coordinates are read | No location API in either client; no location permission | **HOLDS** |
