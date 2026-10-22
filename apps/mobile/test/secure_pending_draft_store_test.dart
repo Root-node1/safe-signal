@@ -188,7 +188,7 @@ void main() {
       fake.failReads = true;
       await expectLater(
         store.read(),
-        throwsA(isA<PendingDraftStorageException>()),
+        throwsA(isA<PendingDraftUnavailable>()),
       );
     });
 
@@ -196,7 +196,7 @@ void main() {
       fake.failWrites = true;
       await expectLater(
         store.write(record()),
-        throwsA(isA<PendingDraftStorageException>()),
+        throwsA(isA<PendingDraftWriteFailed>()),
       );
       expect(fake.values, isEmpty);
     });
@@ -206,7 +206,7 @@ void main() {
       fake.failWrites = true;
       await expectLater(
         store.write(record(key: 'new')),
-        throwsA(isA<PendingDraftStorageException>()),
+        throwsA(isA<PendingDraftWriteFailed>()),
       );
       fake.failWrites = false;
       expect((await store.read())!.key, 'old');
@@ -217,7 +217,7 @@ void main() {
       fake.failDeletes = true;
       await expectLater(
         store.delete(),
-        throwsA(isA<PendingDraftStorageException>()),
+        throwsA(isA<PendingDraftDeleteFailed>()),
       );
       fake.failDeletes = false;
       expect(await store.read(), isNotNull);
@@ -228,7 +228,7 @@ void main() {
       try {
         await store.write(record());
         fail('expected a storage error');
-      } on PendingDraftStorageException catch (e) {
+      } on PendingDraftWriteFailed catch (e) {
         expect(e.reason, isNot(contains('Thika Road')));
         expect(e.reason, isNot(contains('key-1')));
       }

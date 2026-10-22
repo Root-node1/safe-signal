@@ -8,24 +8,6 @@ import 'pending_draft_store.dart';
 /// The single storage key the pending record lives under (SR-3.1).
 const String kPendingDraftStorageKey = 'safesignal_pending_draft_v1';
 
-/// A stored record that cannot be trusted. Same type as the one `PendingDraft`
-/// raises, so a corrupt record has one name wherever it is detected. T-13 builds
-/// the full exception hierarchy on top of it.
-typedef PendingDraftCorrupt = PendingDraftCorruptException;
-
-/// The platform keystore or storage failed. This is not a corrupt record: the
-/// stored value may be perfectly good, it just could not be read or written now.
-/// [reason] never contains report content, the key or a stored value. T-13
-/// refines this into the specified hierarchy.
-class PendingDraftStorageException implements Exception {
-  const PendingDraftStorageException(this.reason);
-
-  final String reason;
-
-  @override
-  String toString() => 'PendingDraftStorageException: $reason';
-}
-
 /// The smallest string key-value surface the store needs. The real
 /// implementation is [FlutterSecureKeyValue]; unit tests use a fake.
 abstract class SecureKeyValue {
@@ -64,8 +46,27 @@ class FlutterSecureKeyValue implements SecureKeyValue {
 ///
 /// The whole record is one JSON value under [kPendingDraftStorageKey], so a torn
 /// write cannot leave a partial record (RR-4.1). It never falls back to plaintext
-/// storage: when the keystore fails, [isAvailable] is `false` and operations
-/// throw [PendingDraftStorageException].
+/// storage: when the keystore fails, [isAvailable] is `false` and the operations
+/// throw the typed failures from `pending_draft_store.dart`.
+///
+/// **Why an interrupted write is safe (RR-4.1).** Two things together make it
+/// safe, and neither is enough on its own:
+///
+/// 1. *The single-value write.* The whole record is one value, so the platform
+///    either has the old value, the new value, or nothing. There is no
+///    multi-field state that can be half written, and the record cannot be
+///    assembled from pieces of two different writes.
+/// 2. *The checksum.* The record carries a SHA-256 over its own content. A value
+///    that is present but not the record we intended — a value written by an
+///    older app version, or one mangled by a keystore fault — does not verify,
+///    so it is treated as corrupt and deleted instead of being restored
+///    (SR-4.2, RR-4.2). A restored report is therefore either exactly what was
+///    saved or nothing at all.
+///
+/// Failures are reported by kind: a read that cannot reach the keystore is
+/// [PendingDraftUnavailable] and is never treated as "no record"; a write that
+/// fails is [PendingDraftWriteFailed]; a delete that fails is
+/// [PendingDraftDeleteFailed] and leaves the record intact (RR-4.3).
 class SecurePendingDraftStore implements PendingDraftStore {
   SecurePendingDraftStore([SecureKeyValue? storage])
       : _storage = storage ?? FlutterSecureKeyValue();
@@ -89,7 +90,9 @@ class SecurePendingDraftStore implements PendingDraftStore {
     try {
       raw = await _storage.read(kPendingDraftStorageKey);
     } catch (e) {
-      throw PendingDraftStorageException('read failed (${e.runtimeType})');
+      // The keystore could not be reached. The stored record may be fine: this
+      // is not corruption, and it is never reported as an absent record.
+      throw PendingDraftUnavailable('read failed (${e.runtimeType})');
     }
     if (raw == null) return null;
 
@@ -104,8 +107,10 @@ class SecurePendingDraftStore implements PendingDraftStore {
         throw const PendingDraftCorrupt('checksum does not match');
       }
       return record;
-    } on PendingDraftCorrupt {
-      rethrow;
+    } on PendingDraftCorruptException catch (e) {
+      // The record itself rejected it: wrong version, missing field, or a
+      // payload that is not the expected object.
+      throw PendingDraftCorrupt(e.reason);
     } on FormatException {
       throw const PendingDraftCorrupt('record is not valid JSON');
     } on TypeError {
@@ -119,7 +124,8 @@ class SecurePendingDraftStore implements PendingDraftStore {
     try {
       await _storage.write(kPendingDraftStorageKey, value);
     } catch (e) {
-      throw PendingDraftStorageException('write failed (${e.runtimeType})');
+      // Nothing was written: the previous record, if any, is untouched.
+      throw PendingDraftWriteFailed('write failed (${e.runtimeType})');
     }
   }
 
@@ -128,7 +134,8 @@ class SecurePendingDraftStore implements PendingDraftStore {
     try {
       await _storage.delete(kPendingDraftStorageKey);
     } catch (e) {
-      throw PendingDraftStorageException('delete failed (${e.runtimeType})');
+      // The record is still there. Report the failure; never report success.
+      throw PendingDraftDeleteFailed('delete failed (${e.runtimeType})');
     }
   }
 }

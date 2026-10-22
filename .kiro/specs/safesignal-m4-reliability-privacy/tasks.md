@@ -658,8 +658,9 @@ implementation.
 ## Task 12 — Implement the encrypted store
 
 **Status:** complete — implemented and verified by automated tests (21 October 2026); the on-device
-encryption check remains T-31. `flutter_secure_storage` 11.2.0 added (D-H approved; 32 transitive
-packages in `pubspec.lock`, no existing package changed). `secure_pending_draft_store.dart` adds
+encryption check remains T-31. `flutter_secure_storage` 11.2.0 added (D-H approved; 31 new
+transitive lockfile package entries, plus the direct `flutter_secure_storage` dependency itself — 32
+new entries in total, no existing package changed). `secure_pending_draft_store.dart` adds
 `SecurePendingDraftStore` over a small `SecureKeyValue` adapter (real: `FlutterSecureKeyValue`), one
 key `safesignal_pending_draft_v1`, the whole record as one JSON value. Read validates JSON, version and
 checksum and raises `PendingDraftCorrupt` (an alias of `PendingDraftCorruptException`), including lazy
@@ -710,6 +711,42 @@ write, read, corrupt, delete, and keystore-unavailable.
 
 ## Task 13 — Make the store robust against interrupted writes, corruption and failed deletion
 
+**Status:** complete — implemented and verified by automated tests (22 October 2026).
+`apps/mobile/lib/storage/pending_draft_store.dart` now carries the exception hierarchy and the
+discard helper, both defined against the interface so neither depends on a concrete store:
+`PendingDraftStoreException` is the base, with `PendingDraftCorrupt` (the stored value is not the
+record we intended), `PendingDraftUnavailable` (the storage could not be reached — the record may
+be perfectly good), `PendingDraftWriteFailed` (the record was not written) and
+`PendingDraftDeleteFailed` (the record was not deleted). None of the reasons ever carries an
+incident payload, a submission key or a stored value. `readOrDiscard()` reads, validates, and on
+corruption deletes the record and rethrows a typed `PendingDraftCorrupt` so the caller can tell the
+user; a storage failure is propagated unchanged and is never treated as an absent record, and
+nothing is deleted for it. If the deletion of a corrupt record fails, `PendingDraftDeleteFailed` is
+raised with the corruption as its cause, so the failure is never reported as success (RR-4.3).
+`SecurePendingDraftStore` now wraps the platform error by operation — a read failure is
+`PendingDraftUnavailable`, a write failure `PendingDraftWriteFailed`, a delete failure
+`PendingDraftDeleteFailed` — and translates a rejected record into `PendingDraftCorrupt`; the
+T-12 placeholders (`PendingDraftStorageException` and the `PendingDraftCorrupt` alias) are gone.
+`InMemoryPendingDraftStore` refuses to return a record whose checksum does not verify, exactly as
+the keystore-backed store does. The store's documentation now states why an interrupted write is
+safe: the single-value write means there is no half-written record to recover, and the checksum
+means a value that is present but not the record we intended is detected and deleted rather than
+restored (RR-4.1).
+Tests: `apps/mobile/test/pending_draft_store_robustness_test.dart` (new, 28 tests) covers the
+hierarchy, `readOrDiscard` over a healthy store, over a corrupt record (corrupted JSON, unsupported
+version, checksum mismatch — each discarded and reported, and never returned to the caller), over
+an unavailable store (a failed read is not treated as absent and deletes nothing), the failed
+write, the failed delete (reported, and the record left intact rather than half-deleted),
+idempotent deletion, a failed deletion *during* a discard (reported as a delete failure with the
+corruption as its cause), and the in-memory store's refusal to return an unverified record. The
+T-12 store tests were updated to the new type names, with the same coverage.
+Verification: `flutter analyze --fatal-infos` → **no issues**; `flutter test` → **254 passed, 1
+skipped** (the opt-in integration test, unchanged; 226 before this task). The React and backend
+suites are untouched. **Outstanding:** the next CI run of the `mobile` job. Expiry (T-14) and the
+controller integration (T-15) are not part of this task and were not implemented.
+**Note:** the T-12 status block above described the pre-T-13 exception names; that text is kept as
+the record of T-12's state, and the current names are the ones listed here.
+
 **Objective:** Give the store the deterministic failure behaviour the requirements demand.
 
 **Components:** `apps/mobile/lib/storage/pending_draft_store.dart`,
@@ -745,6 +782,41 @@ read and delete each fail on demand.
 ---
 
 ## Task 14 — Enforce expiry
+
+**Status:** complete — implemented and verified by automated tests (22 October 2026).
+`apps/mobile/lib/storage/pending_draft_store.dart` gains the expiry policy on the startup read and
+the outcome types that keep the cases apart: `PendingDraftAbsent` (nothing is stored),
+`PendingDraftAvailable` (a valid record that has not expired — it stays in storage so it can be
+offered for restore) and `PendingDraftExpired` (the record had expired: it was deleted, it is never
+offered for restore, and it carries only the time the report was saved, so the user can be told
+*when* it expired and never what it contained, FR-4.3). The clock is injected
+(`PendingDraftClock`), so expiry is deterministic under test and follows the device clock in the
+app. `readOrDiscardAt(now)` reads, validates and applies the policy: a valid record inside the
+window is returned and kept; a record at or past `expiresAt` is deleted and reported as expired; a
+deletion that fails raises `PendingDraftDeleteFailed` and leaves the record in place, so the failure
+is never reported as success (RR-4.3); a corrupt record is deleted and raised as
+`PendingDraftCorrupt`; an unreachable store is raised as `PendingDraftUnavailable`. Expiry,
+corruption and unavailability therefore stay three distinct things, and a report is never silently
+dropped.
+`apps/mobile/lib/api/submission_controller.dart` exposes the outcome through `readPendingReport()`
+and the `pendingOutcome` getter, so the UI can say "The saved report from <time> expired and was
+deleted." The controller takes an optional `pendingStore` and an optional clock; reading the pending
+report does not touch the draft or the idempotency key — saving, restoring and discarding on
+request remain T-15.
+The T-13 exception hierarchy is unchanged, T-13's `readOrDiscard()` behaviour is preserved (its 28
+tests still pass), the 24-hour default and its build-time override are unchanged, and no background
+deletion was introduced.
+Tests: `apps/mobile/test/pending_draft_expiry_test.dart` (new, 16 tests) covers a record just
+inside the window, exactly at expiry and after expiry; the successful deletion of an expired
+record; a failed deletion of an expired record (reported, the record left in place, and not
+reported as success); a missing record; a corrupt record; an unavailable store; and the injected
+clock, through the controller.
+Verification: `flutter analyze --fatal-infos` → **no issues**; `flutter test` → **270 passed, 1
+skipped** (the opt-in integration test, unchanged; 254 before this task). The React and backend
+suites are untouched — the backend's T-04 citation check caught the one line reference into
+`submission_controller.dart` that moved with this change, and that single citation in
+`docs/M4_SCOPE_CHECKLIST.md` was corrected. **Outstanding:** the next CI run of the `mobile` job.
+Manual verification: none required by the task.
 
 **Objective:** Delete an expired pending record on read and tell the user.
 

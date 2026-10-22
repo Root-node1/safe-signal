@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 
 import '../models/report_draft.dart';
+import '../storage/pending_draft_store.dart';
 import 'report_api.dart';
 
 sealed class SubmissionState {
@@ -52,11 +53,31 @@ class NotConfigured extends SubmissionState {
 /// reuses the key; any edit to the payload gets a new key. The key is dropped after success,
 /// reset, or a key conflict. Nothing is retried automatically.
 class SubmissionController extends ChangeNotifier {
-  SubmissionController({required this.api, ReportDraft? draft})
-      : draft = draft ?? ReportDraft();
+  SubmissionController({
+    required this.api,
+    ReportDraft? draft,
+    this.pendingStore,
+    PendingDraftClock? clock,
+  })  : draft = draft ?? ReportDraft(),
+        _clock = clock ?? DateTime.now;
 
   final ReportApi api;
   final ReportDraft draft;
+
+  /// Where the saved report lives, when the app has a store to read from.
+  /// Null when the app has no store, for example in tests that do not exercise
+  /// the pending report.
+  final PendingDraftStore? pendingStore;
+
+  /// The source of "now" for expiry decisions. Injected so expiry is
+  /// deterministic under test (T-14).
+  final PendingDraftClock _clock;
+
+  PendingDraftReadOutcome? _pendingOutcome;
+
+  /// The outcome of the last [readPendingReport] call, so the UI can tell the
+  /// user about an expired report (T-14, FR-4.3).
+  PendingDraftReadOutcome? get pendingOutcome => _pendingOutcome;
 
   SubmissionState _state = const Idle();
   SubmissionState get state => _state;
@@ -112,6 +133,27 @@ class SubmissionController extends ChangeNotifier {
         _forget();
         _set(const NotConfigured());
     }
+  }
+
+  /// Reads the saved report and classifies it. This is the startup read.
+  ///
+  /// An expired record is deleted and reported as [PendingDraftExpired]; it is
+  /// never offered for restore and its content is never shown (FR-4.2, FR-4.3).
+  /// A corrupt record is deleted and raised as [PendingDraftCorrupt]; an
+  /// unreachable store is raised as [PendingDraftUnavailable]. Neither is
+  /// swallowed, so a report is never silently dropped.
+  ///
+  /// Reading the record is all this does: saving it, restoring it and
+  /// discarding it on request are T-15 and later.
+  Future<PendingDraftReadOutcome> readPendingReport() async {
+    final store = pendingStore;
+    if (store == null) {
+      _pendingOutcome = const PendingDraftAbsent();
+      return _pendingOutcome!;
+    }
+    final outcome = await store.readOrDiscardAt(_clock());
+    _pendingOutcome = outcome;
+    return outcome;
   }
 
   /// Drop an old failure message when the user opens the review screen again.

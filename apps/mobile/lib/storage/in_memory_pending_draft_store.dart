@@ -31,7 +31,16 @@ class InMemoryPendingDraftStore implements PendingDraftStore {
   PendingDraft? _record;
 
   @override
-  Future<PendingDraft?> read() async => _record;
+  Future<PendingDraft?> read() async {
+    final record = _record;
+    if (record == null) return null;
+    // A record that does not verify is never handed to the caller, exactly as
+    // in the keystore-backed store (T-13, SR-4.2).
+    if (!record.verifyChecksum()) {
+      throw const PendingDraftCorrupt('checksum does not match');
+    }
+    return record;
+  }
 
   @override
   Future<void> write(PendingDraft draft) async {
