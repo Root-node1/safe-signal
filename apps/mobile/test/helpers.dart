@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:safesignal/api/report_api.dart';
+import 'package:safesignal/storage/pending_draft_store.dart';
 import 'package:safesignal/app.dart';
 
 /// Fake server: always accepts and returns a reference code. No real network.
@@ -13,7 +14,11 @@ ReportApi okApi() => ReportApi(
           '{"code":"SS-ABCD-2345","id":"x","status":"Received"}', 201)),
     );
 
-Widget app() => SafeSignalApp(api: okApi());
+Widget app({PendingDraftStore? pendingStore, PendingDraftClock? clock}) => SafeSignalApp(
+      api: okApi(),
+      pendingStore: pendingStore,
+      clock: clock,
+    );
 
 void phone(WidgetTester tester, {double textScale = 1.0}) {
   tester.view.physicalSize = const Size(1080, 2400);
@@ -119,6 +124,48 @@ bool hasLiveRegionNode(WidgetTester tester) {
   void walk(SemanticsNode node) {
     if (node.flagsCollection.isLiveRegion) {
       found = true;
+      return;
+    }
+    node.visitChildren((child) {
+      walk(child);
+      return true;
+    });
+  }
+
+  walk(rootSemanticsNode(tester));
+  return found;
+}
+
+/// Whether any node in the semantics tree has a dialog role
+/// ([SemanticsRole.dialog] or [SemanticsRole.alertDialog]).
+bool hasDialogRoleNode(WidgetTester tester) {
+  bool found = false;
+  void walk(SemanticsNode node) {
+    final role = node.role;
+    if (role == SemanticsRole.dialog || role == SemanticsRole.alertDialog) {
+      found = true;
+      return;
+    }
+    node.visitChildren((child) {
+      walk(child);
+      return true;
+    });
+  }
+
+  walk(rootSemanticsNode(tester));
+  return found;
+}
+
+/// Returns the label of the first node with a dialog role, or `null` if no
+/// such node exists.
+String? dialogSemanticsLabel(WidgetTester tester) {
+  String? found;
+  void walk(SemanticsNode node) {
+    final role = node.role;
+    if ((role == SemanticsRole.dialog ||
+        role == SemanticsRole.alertDialog) &&
+        node.label.trim().isNotEmpty) {
+      found = node.label;
       return;
     }
     node.visitChildren((child) {

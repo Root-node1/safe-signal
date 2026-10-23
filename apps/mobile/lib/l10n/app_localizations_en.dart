@@ -316,4 +316,47 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get quickExitSemantics =>
       'Quick exit. Clears this report and closes SafeSignal.';
+
+  @override
+  String get restoreTitle => 'Restore report';
+
+  @override
+  String get restoreIntro => 'You have a saved report.';
+
+  @override
+  String get restoreHasNotBeenSubmitted =>
+      'This report has not been submitted.';
+
+  @override
+  String restoreSavedAt(String date) {
+    return 'Saved on $date';
+  }
+
+  @override
+  String get restoreExpiredIntro =>
+      'Your saved report expired and was deleted.';
+
+  @override
+  String get startANewReport => 'Start a new report';
+
+  @override
+  String get restore => 'Restore';
+
+  @override
+  String get keepSaved => 'Keep saved';
+
+  @override
+  String get restoreCorruptIntro =>
+      'Your saved report could not be read and was deleted.';
+
+  @override
+  String get restoreUnavailableIntro => 'Could not read your saved report.';
+
+  @override
+  String get restoreDeleteFailedIntro =>
+      'Your saved report could not be deleted.';
+
+  @override
+  String get restoreDeleteFailedBody =>
+      'The report is still saved on this phone.';
 }

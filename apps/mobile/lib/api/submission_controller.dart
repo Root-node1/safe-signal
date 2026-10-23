@@ -144,6 +144,15 @@ class SubmissionController extends ChangeNotifier {
   /// user about an expired report (T-14, FR-4.3).
   PendingDraftReadOutcome? get pendingOutcome => _pendingOutcome;
 
+  /// A store failure from [readPendingReport], if one happened.
+  ///
+  /// The startup read catches [PendingDraftCorrupt] and
+  /// [PendingDraftUnavailable] rather than propagating them, so the app does
+  /// not crash on launch and the welcome screen can show a banner. The error
+  /// is surfaced here so T-16 and the UI can react to it (FR-4.3, SR-4.2).
+  PendingDraftStoreException? _pendingReadError;
+  PendingDraftStoreException? get pendingReadError => _pendingReadError;
+
   SubmissionState _state = const Idle();
   SubmissionState get state => _state;
   bool get isSubmitting => _state is Submitting;
@@ -220,11 +229,24 @@ class SubmissionController extends ChangeNotifier {
 
   /// Reads the saved report and classifies it. This is the startup read.
   ///
-  /// An expired record is deleted and reported as [PendingDraftExpired]; it is
-  /// never offered for restore and its content is never shown (FR-4.2, FR-4.3).
-  /// A corrupt record is deleted and raised as [PendingDraftCorrupt]; an
-  /// unreachable store is raised as [PendingDraftUnavailable]. Neither is
-  /// swallowed, so a report is never silently dropped.
+  /// The result is cached in [pendingOutcome] and the stored error in
+  /// [pendingReadError], so the UI can rebuild without re-reading the store.
+  /// [readPendingReport] may be called again (for example when the user taps
+  /// Restore) and will re-read; each call reflects the current store state.
+  ///
+  /// * A record that is absent gives [PendingDraftAbsent].
+  /// * A valid record that has not expired gives [PendingDraftAvailable] and is
+  ///   left in storage, so it can be offered for restore.
+  /// * A record that has expired is deleted and gives [PendingDraftExpired]. It
+  ///   is never offered for restore and its content is never shown (FR-4.2,
+  ///   FR-4.3). A deletion that fails is raised as [PendingDraftDeleteFailed]
+  ///   and the record is left in place — the failure is never reported as
+  ///   success (RR-4.3).
+  /// * A corrupt record is deleted and stored in [pendingReadError] as
+  ///   [PendingDraftCorrupt]; an unreachable store is stored as
+  ///   [PendingDraftUnavailable]. Neither is swallowed — [restorePending]
+  ///   re-raises or returns the appropriate outcome — and neither is turned
+  ///   into silence, so the welcome screen can report it (T-13, T-14, T-16).
   ///
   /// Reading the record is all this does: saving it, restoring it and
   /// discarding it on request are T-15 and later.
@@ -232,11 +254,41 @@ class SubmissionController extends ChangeNotifier {
     final store = pendingStore;
     if (store == null) {
       _pendingOutcome = const PendingDraftAbsent();
+      _pendingReadError = null;
+      notifyListeners();
       return _pendingOutcome!;
     }
-    final outcome = await store.readOrDiscardAt(_clock());
-    _pendingOutcome = outcome;
-    return outcome;
+
+    try {
+      final outcome = await store.readOrDiscardAt(_clock());
+      _pendingOutcome = outcome;
+      _pendingReadError = null;
+      notifyListeners();
+      return outcome;
+    } on PendingDraftCorrupt catch (e) {
+      // The record was deleted by the read; surface the failure so the UI
+      // can tell the user (SR-4.2) instead of crashing the startup read (T-16).
+      _pendingOutcome = const PendingDraftAbsent();
+      _pendingReadError = e;
+      notifyListeners();
+      return _pendingOutcome!;
+    } on PendingDraftDeleteFailed catch (e) {
+      // Deletion of a corrupt or expired record failed: the record is still
+      // on the device, but it is not safe to offer for restore. Catch it here
+      // so it never crashes startup, surface it as an explicit error state,
+      // and never report the deletion as successful (RR-4.3, T-16).
+      _pendingOutcome = const PendingDraftAbsent();
+      _pendingReadError = e;
+      notifyListeners();
+      return _pendingOutcome!;
+    } on PendingDraftUnavailable catch (e) {
+      // The store could not be reached: distinguish from "nothing saved"
+      // (T-13, T-16).
+      _pendingOutcome = const PendingDraftAbsent();
+      _pendingReadError = e;
+      notifyListeners();
+      return _pendingOutcome!;
+    }
   }
 
   /// Saves the current draft as the pending report.
@@ -310,13 +362,27 @@ class SubmissionController extends ChangeNotifier {
   /// nothing. A storage failure is raised, so it stays distinguishable from
   /// corruption and is never treated as "there was nothing saved".
   Future<RestoreOutcome> restorePending() async {
-    final PendingDraftReadOutcome outcome;
-    try {
-      outcome = await readPendingReport();
-    } on PendingDraftCorrupt {
+    // readPendingReport catches corrupt/unavailable storage failures and
+    // caches them in _pendingReadError, so they do not crash the startup
+    // read. restorePending surfaces them as outcomes or re-raises them here.
+    final outcome = await readPendingReport();
+
+    final error = _pendingReadError;
+    if (error is PendingDraftCorrupt) {
       // The record was deleted by the read; the user is told it could not be
       // read (SR-4.2).
       return const RestoreCorrupt();
+    }
+    if (error is PendingDraftDeleteFailed) {
+      // Deletion of a corrupt or expired record failed: the record is still
+      // on the device but cannot be trusted or offered for restore. Tell the
+      // user it could not be read or removed (RR-4.3, T-16).
+      return const RestoreCorrupt();
+    }
+    if (error is PendingDraftUnavailable) {
+      // The store could not be reached: distinguish from "nothing saved"
+      // (T-13, T-14).
+      throw error;
     }
 
     switch (outcome) {

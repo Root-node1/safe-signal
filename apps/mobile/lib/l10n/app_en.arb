@@ -121,5 +121,24 @@
   "helplineGbvDetail": "Support after violence or harassment",
   "actionDone": "Done",
   "quickExitLabel": "Exit",
-  "quickExitSemantics": "Quick exit. Clears this report and closes SafeSignal."
+  "quickExitSemantics": "Quick exit. Clears this report and closes SafeSignal.",
+  "restoreTitle": "Restore report",
+  "restoreIntro": "You have a saved report.",
+  "restoreHasNotBeenSubmitted": "This report has not been submitted.",
+  "restoreSavedAt": "Saved on {date}",
+  "restoreExpiredIntro": "Your saved report expired and was deleted.",
+  "startANewReport": "Start a new report",
+  "restore": "Restore",
+  "keepSaved": "Keep saved",
+  "restoreCorruptIntro": "Your saved report could not be read and was deleted.",
+  "restoreUnavailableIntro": "Could not read your saved report.",
+  "restoreDeleteFailedIntro": "Your saved report could not be deleted.",
+  "restoreDeleteFailedBody": "The report is still saved on this phone.",
+  "@restoreSavedAt": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  }
 }

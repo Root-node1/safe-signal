@@ -643,6 +643,78 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Quick exit. Clears this report and closes SafeSignal.'**
   String get quickExitSemantics;
+
+  /// No description provided for @restoreTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Restore report'**
+  String get restoreTitle;
+
+  /// No description provided for @restoreIntro.
+  ///
+  /// In en, this message translates to:
+  /// **'You have a saved report.'**
+  String get restoreIntro;
+
+  /// No description provided for @restoreHasNotBeenSubmitted.
+  ///
+  /// In en, this message translates to:
+  /// **'This report has not been submitted.'**
+  String get restoreHasNotBeenSubmitted;
+
+  /// No description provided for @restoreSavedAt.
+  ///
+  /// In en, this message translates to:
+  /// **'Saved on {date}'**
+  String restoreSavedAt(String date);
+
+  /// No description provided for @restoreExpiredIntro.
+  ///
+  /// In en, this message translates to:
+  /// **'Your saved report expired and was deleted.'**
+  String get restoreExpiredIntro;
+
+  /// No description provided for @startANewReport.
+  ///
+  /// In en, this message translates to:
+  /// **'Start a new report'**
+  String get startANewReport;
+
+  /// No description provided for @restore.
+  ///
+  /// In en, this message translates to:
+  /// **'Restore'**
+  String get restore;
+
+  /// No description provided for @keepSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep saved'**
+  String get keepSaved;
+
+  /// No description provided for @restoreCorruptIntro.
+  ///
+  /// In en, this message translates to:
+  /// **'Your saved report could not be read and was deleted.'**
+  String get restoreCorruptIntro;
+
+  /// No description provided for @restoreUnavailableIntro.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not read your saved report.'**
+  String get restoreUnavailableIntro;
+
+  /// No description provided for @restoreDeleteFailedIntro.
+  ///
+  /// In en, this message translates to:
+  /// **'Your saved report could not be deleted.'**
+  String get restoreDeleteFailedIntro;
+
+  /// No description provided for @restoreDeleteFailedBody.
+  ///
+  /// In en, this message translates to:
+  /// **'The report is still saved on this phone.'**
+  String get restoreDeleteFailedBody;
 }
 
 class _AppLocalizationsDelegate

@@ -320,4 +320,46 @@ class AppLocalizationsSw extends AppLocalizations {
   @override
   String get quickExitSemantics =>
       'Kutoka haraka. Hufuta ripoti hii na kufunga SafeSignal.';
+
+  @override
+  String get restoreTitle => 'Tumaini ya ripoti';
+
+  @override
+  String get restoreIntro => 'Una ripoti iliyopotekwa.';
+
+  @override
+  String get restoreHasNotBeenSubmitted => 'Hii ripoti haijatolewa.';
+
+  @override
+  String restoreSavedAt(String date) {
+    return 'Iliyopotekwa tarehe $date';
+  }
+
+  @override
+  String get restoreExpiredIntro => 'Ripoti yako iliyopotekwa ilifutwa.';
+
+  @override
+  String get startANewReport => 'Tuma ripoti mpya';
+
+  @override
+  String get restore => 'Tumaini';
+
+  @override
+  String get keepSaved => 'Wezeleza';
+
+  @override
+  String get restoreCorruptIntro =>
+      'Ripoti yako iliyopotekwa haikuwezeshwa kusomwa na ilifutwa.';
+
+  @override
+  String get restoreUnavailableIntro =>
+      'Haukuweza kusoma ripoti yako iliyopotekwa.';
+
+  @override
+  String get restoreDeleteFailedIntro =>
+      'Ripoti yako iliyopotekwa haifutwa kwa kutokufanikiwa.';
+
+  @override
+  String get restoreDeleteFailedBody =>
+      'Ripoti bado imehifadhiwa kwenye simu yako.';
 }

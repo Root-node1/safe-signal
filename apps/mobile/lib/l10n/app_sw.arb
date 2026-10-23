@@ -90,5 +90,24 @@
   "helplineGbvDetail": "Msaada baada ya ukatili au unyanyasaji",
   "actionDone": "Nimemaliza",
   "quickExitLabel": "Toka",
-  "quickExitSemantics": "Kutoka haraka. Hufuta ripoti hii na kufunga SafeSignal."
+  "quickExitSemantics": "Kutoka haraka. Hufuta ripoti hii na kufunga SafeSignal.",
+  "restoreTitle": "Tumaini ya ripoti",
+  "restoreIntro": "Una ripoti iliyopotekwa.",
+  "restoreHasNotBeenSubmitted": "Hii ripoti haijatolewa.",
+  "restoreSavedAt": "Iliyopotekwa tarehe {date}",
+  "restoreExpiredIntro": "Ripoti yako iliyopotekwa ilifutwa.",
+  "startANewReport": "Tuma ripoti mpya",
+  "restore": "Tumaini",
+  "keepSaved": "Wezeleza",
+  "restoreCorruptIntro": "Ripoti yako iliyopotekwa haikuwezeshwa kusomwa na ilifutwa.",
+  "restoreUnavailableIntro": "Haukuweza kusoma ripoti yako iliyopotekwa.",
+  "restoreDeleteFailedIntro": "Ripoti yako iliyopotekwa haifutwa kwa kutokufanikiwa.",
+  "restoreDeleteFailedBody": "Ripoti bado imehifadhiwa kwenye simu yako.",
+  "@restoreSavedAt": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  }
 }

@@ -261,5 +261,36 @@ void main() {
       expect(controller.draft.support, isNull);
       expect(controller.currentKey, isNull);
     });
+
+    test('a failed deletion during startup is caught, not rethrown', () async {
+      // This test needs a SecurePendingDraftStore with a failing delete, so it
+      // creates its own fake keystore and store rather than relying on a
+      // group-level setUp.
+      final fake = FakeKeyValue();
+      final store = SecurePendingDraftStore(fake);
+      await store.write(record(createdAt: savedAt.millisecondsSinceEpoch));
+      fake.failDeletes = true;
+
+      final expiredController = SubmissionController(
+        api: ReportApi(baseUrl: 'https://api.example.test/'),
+        pendingStore: store,
+        clock: () => expiresAt.add(const Duration(minutes: 1)),
+      );
+
+      // Before the fix this threw PendingDraftDeleteFailed and crashed startup.
+      final outcome = await expiredController.readPendingReport();
+
+      // The error is cached for the UI, not rethrown.
+      expect(outcome, isA<PendingDraftAbsent>());
+      expect(
+        expiredController.pendingReadError,
+        isA<PendingDraftDeleteFailed>(),
+        reason: 'the deletion failure must be surfaced, not swallowed (RR-4.3)',
+      );
+
+      // The record is still in storage (nothing was half-deleted).
+      fake.failDeletes = false;
+      expect(fake.values.containsKey(kPendingDraftStorageKey), isTrue);
+    });
   });
 }
