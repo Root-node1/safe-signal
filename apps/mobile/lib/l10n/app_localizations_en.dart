@@ -387,10 +387,36 @@ class AppLocalizationsEn extends AppLocalizations {
       'You changed the saved report, so it will be sent as a new report.';
 
   @override
+  String get recordRetainedTitle => 'Your report is still saved';
+
+  @override
+  String get recordRetainedBody =>
+      'The report was accepted by the server, but SafeSignal could not delete the saved copy on this phone. No duplicate will be sent, but the report remains on this device until it is deleted.';
+
+  @override
+  String get deleteSavedReport => 'Delete saved report';
+
+  @override
+  String get recordStillRetained => 'The report is still saved on this phone.';
+
+  @override
   String get errKeyConflict =>
       'The server found a conflict with this report key. A new key will be used for the next attempt, so this will be sent as a new report.';
 
   @override
   String get errUnknownOutcome =>
       'The outcome of your report is unknown. It may or may not have arrived. The report is still saved on your phone. Tapping Submit report again is safe: the same report will not be sent twice while the server keeps running.';
+
+  @override
+  String get quickExitRecordRetainedTitle => 'Your report is still saved';
+
+  @override
+  String get quickExitRecordRetainedBody =>
+      'SafeSignal could not delete the saved report on this phone before exiting. The app will still close, but the report remains on this device.';
+
+  @override
+  String get quickExitExitAnyway => 'Exit anyway';
+
+  @override
+  String get quickExitTryAgain => 'Try again';
 }

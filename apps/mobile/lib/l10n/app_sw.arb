@@ -111,8 +111,16 @@
   "discardFailedTitle": "Haukuweza kufuta ripoti iliyopotekwa.",
   "discardFailedBody": "Ripoti bado imehifadhiwa kwenye simu yako.",
   "restoredEditedNotice": "Umebadilisha ripoti iliyopotekwa, kwa hiyo itatumwa kama ripoti mpya.",
+  "recordRetainedTitle": "Ripoti yako bado iko hifadhiwa",
+  "recordRetainedBody": "Seva ilikubali ripoti yako, lakini SafeSignal haikuweza kufuta nakili iliyohifadhiwa kwenye simu yako. Hakuna nakala nyingine itatumwa, lakini ripoti bado iko kwenye seva hivi karibu itakaposafiri.",
+  "deleteSavedReport": "Futa ripoti iliyopotekwa",
+  "recordStillRetained": "Ripoti bado imehifadhiwa kwenye simu yako.",
   "errKeyConflict": "Seva imekuta jarzamo na uficho wa ripoti hii. Ufumio mpya utatumika katika jaribu kipya, kwa hiyo itatumwa kama ripoti mpya.",
   "errUnknownOutcome": "Matokeo ya ripoti yako hayajajulikani. Inaweza kufika au kutokafika. Ripoti bado imehifadhiwa kwenye simu yako. Kubonya Tuma ripoti tena ni salama: ripoti hiyo haijatumiwa tena mara wakati seva inaendelea kufanya kazi.",
+  "quickExitRecordRetainedTitle": "Ripoti yako bado iko hifadhiwa",
+  "quickExitRecordRetainedBody": "SafeSignal haikuweza kufuta ripoti iliyopotekwa kwenye simu yako kabla ya kutoka. Programu itafunga bado, lakini ripoti bado iko kwenye seva hivi karibu itakaposafiri.",
+  "quickExitExitAnyway": "Toka hata hivyo",
+  "quickExitTryAgain": "Jaribu tena",
   "@restoreSavedAt": {
     "placeholders": {
       "date": {

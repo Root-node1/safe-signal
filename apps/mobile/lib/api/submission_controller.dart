@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
@@ -136,6 +137,15 @@ final class RestoreSucceeded extends RestoreOutcome {
   const RestoreSucceeded();
 }
 
+/// The result of a Quick Exit pending-record deletion attempt.
+enum QuickExitDeletionStatus {
+  /// The record was deleted (or was already absent).
+  success,
+
+  /// The record could not be deleted and remains on the device.
+  recordRetained,
+}
+
 /// Owns the in-memory draft and one logical submission. State lives in memory only.
 ///
 /// Idempotency: one random key per logical report. An unchanged retry (even after Back/Forward)
@@ -147,8 +157,8 @@ class SubmissionController extends ChangeNotifier {
     ReportDraft? draft,
     this.pendingStore,
     PendingDraftClock? clock,
-  })  : draft = draft ?? ReportDraft(),
-        _clock = clock ?? DateTime.now;
+  }) : draft = draft ?? ReportDraft(),
+       _clock = clock ?? DateTime.now;
 
   final ReportApi api;
   final ReportDraft draft;
@@ -185,7 +195,8 @@ class SubmissionController extends ChangeNotifier {
   bool get reportWasEdited {
     final outcome = _pendingOutcome;
     if (outcome is! PendingDraftAvailable) return false;
-    return jsonEncode(ReportApi.payload(draft)) != outcome.draft.canonicalPayload;
+    return jsonEncode(ReportApi.payload(draft)) !=
+        outcome.draft.canonicalPayload;
   }
 
   /// Whether the saved pending record matches the report that was actually sent.
@@ -209,6 +220,13 @@ class SubmissionController extends ChangeNotifier {
   String? _key;
   String? _signature;
   int _ticket = 0;
+
+  /// Serialises all storage mutations so that a check-then-delete (or
+  /// check-then-write) cannot race with another operation that writes a
+  /// newer record. The mutex is controller-owned because the controller is
+  /// the sole coordinator of the in-memory draft, the stored record and the
+  /// idempotency key.
+  final _StorageMutex _storageMutex = _StorageMutex();
 
   /// For tests: the key that the next retry of an unchanged report would use.
   @visibleForTesting
@@ -255,22 +273,52 @@ class SubmissionController extends ChangeNotifier {
           _set(SucceededButDraftChanged(code, submittedSupport));
           return;
         }
-         final support = draft.support;
+        final support = draft.support;
         // On a confirmed 2xx, delete the pending record (FR-5.4). The deletion
-        // only runs when a record was confirmed to exist — the startup read
-        // already told us so — so we never ask the keystore to delete something
-        // it was never able to read.
+        // is guarded by [pendingMatchesAttempt] AND serialised by the storage
+        // mutex: only the stored record whose key and payload signature match
+        // the exact attempt being confirmed is deleted. A stale 2xx for an
+        // older draft can never remove a newer saved report, even if a
+        // concurrent save writes between the check and the delete
+        // (FR-5.4, RR-4.3).
         final store = pendingStore;
-        if (store != null && _pendingOutcome is PendingDraftAvailable) {
-          try {
-            await store.delete();
-          } on PendingDraftDeleteFailed catch (e) {
-            // The backend accepted the report, but the saved record could not
-            // be deleted. Preserve the accepted state and the saved record;
-            // do not retry the HTTP submission, and do not clear the draft or
-            // key. Surface a distinguishable state so T-19 can extend it with
-            // recovery UI (FR-5.4, RR-4.3).
-            _set(SucceededButRecordRetained(code, support, e));
+        if (store != null) {
+          final deleted = await _storageMutex.run<bool>(() async {
+            // If there's no stored record or it's expired/corrupt/unavailable,
+            // there's nothing to delete — treat as success.
+            final outcome = _pendingOutcome;
+            if (outcome is! PendingDraftAvailable) return true;
+            // If the stored record doesn't match our attempt, it's a newer
+            // record — don't delete it, but report the stale success separately.
+            if (!pendingMatchesAttempt) return false;
+            try {
+              await store.delete();
+              return true;
+            } on PendingDraftDeleteFailed {
+              return false;
+            }
+          });
+          if (!deleted) {
+            // Either the record didn't match our attempt (newer record), or
+            // deletion failed for the matching record.
+            final outcome = _pendingOutcome;
+            if (outcome is PendingDraftAvailable && pendingMatchesAttempt) {
+              // Deletion failed for the matching record.
+              _set(
+                SucceededButRecordRetained(
+                  code,
+                  support,
+                  const PendingDraftDeleteFailed('delete failed'),
+                ),
+              );
+            } else if (outcome is PendingDraftAvailable) {
+              // A newer record was saved; keep it and report the stale success
+              // separately.
+              _set(SucceededButDraftChanged(code, submittedSupport));
+            } else {
+              // No record or expired/corrupt — this shouldn't happen since we
+              // returned true above, but fall through to normal success.
+            }
             return;
           }
         }
@@ -404,7 +452,7 @@ class SubmissionController extends ChangeNotifier {
       expiresAt: PendingDraft.expiryFor(createdAt),
     );
 
-    await store.write(record);
+    await _storageMutex.run(() => store.write(record));
 
     // Only now that the record is safely stored. The controller's key always
     // belongs to the payload it is working on: when the current key applies to
@@ -478,7 +526,8 @@ class SubmissionController extends ChangeNotifier {
   /// it is still stored (RR-4.3).
   ///
   /// Concurrent calls are ignored so that a double-tap cannot issue a duplicate
-  /// deletion request on the same record.
+  /// deletion request on the same record. The deletion is serialised by the
+  /// storage mutex so it cannot race with a concurrent save.
   bool _discarding = false;
 
   Future<void> discardPending() async {
@@ -487,7 +536,7 @@ class SubmissionController extends ChangeNotifier {
     try {
       final store = pendingStore;
       if (store != null) {
-        await store.delete();
+        await _storageMutex.run(() => store.delete());
       }
       _forget();
       draft.clear();
@@ -521,5 +570,113 @@ class SubmissionController extends ChangeNotifier {
   void _forget() {
     _key = null;
     _signature = null;
+  }
+
+  /// Prepares for Quick Exit: invalidates any in-flight submission response,
+  /// clears the in-memory draft and key, and attempts to delete the pending
+  /// record before the app closes (FR-11.1, RR-4.3).
+  ///
+  /// The [_ticket] increment ensures a late 2xx for an in-flight submission is
+  /// ignored: [submit]'s continuation returns early when `ticket != _ticket`
+  /// at line 249.
+  ///
+  /// Returns [QuickExitDeletionStatus.success] if the record was deleted (or
+  /// was already absent), or [QuickExitDeletionStatus.recordRetained] if the
+  /// deletion failed — in which case the caller shows "Try again" and
+  /// "Exit anyway" (FR-11.2). The app never claims the device was cleared when
+  /// it was not (RR-4.3). The deletion is serialised by the storage mutex.
+  Future<QuickExitDeletionStatus> prepareForQuickExit() async {
+    _ticket++;
+    _forget();
+    draft.clear();
+    _set(const Idle());
+
+    final store = pendingStore;
+    if (store == null) return QuickExitDeletionStatus.success;
+    if (!await store.isAvailable()) return QuickExitDeletionStatus.success;
+
+    return _storageMutex.run<QuickExitDeletionStatus>(() async {
+      try {
+        await store.delete();
+        _pendingOutcome = const PendingDraftAbsent();
+        _pendingReadError = null;
+        return QuickExitDeletionStatus.success;
+      } on PendingDraftDeleteFailed {
+        return QuickExitDeletionStatus.recordRetained;
+      }
+    });
+  }
+
+  /// Retries the pending-record deletion for Quick Exit after a failure.
+  ///
+  /// The in-memory draft and key are already cleared by [prepareForQuickExit];
+  /// this only retries the local storage deletion. It never resubmits the HTTP
+  /// report (FR-11.2, RR-4.3). The deletion is serialised by the storage mutex.
+  Future<QuickExitDeletionStatus> retryQuickExitDeletion() async {
+    final store = pendingStore;
+    if (store == null) return QuickExitDeletionStatus.success;
+    if (!await store.isAvailable()) return QuickExitDeletionStatus.success;
+
+    return _storageMutex.run<QuickExitDeletionStatus>(() async {
+      try {
+        await store.delete();
+        _pendingOutcome = const PendingDraftAbsent();
+        _pendingReadError = null;
+        return QuickExitDeletionStatus.success;
+      } on PendingDraftDeleteFailed {
+        return QuickExitDeletionStatus.recordRetained;
+      }
+    });
+  }
+
+  /// Retries deletion of the saved pending record after a confirmed 2xx whose
+  /// local deletion failed ([SucceededButRecordRetained] state).
+  ///
+  /// This only retries the local storage deletion — it never resubmits the HTTP
+  /// report (FR-5.5, RR-4.3). On success, transitions to [Succeeded] so the
+  /// confirmation screen shows the normal success view. The deletion is
+  /// serialised by the storage mutex.
+  Future<bool> retryPendingDeletion() async {
+    final store = pendingStore;
+    if (store == null) return true;
+    if (!await store.isAvailable()) return true;
+
+    return _storageMutex.run<bool>(() async {
+      try {
+        await store.delete();
+        _pendingOutcome = const PendingDraftAbsent();
+        _pendingReadError = null;
+        final current = _state;
+        if (current is SucceededButRecordRetained) {
+          _forget();
+          draft.clear();
+          _set(Succeeded(current.code, current.support));
+        }
+        return true;
+      } on PendingDraftDeleteFailed {
+        return false;
+      }
+    });
+  }
+}
+
+/// A tiny async mutex that serialises callers. Used by [SubmissionController]
+/// to ensure storage mutations (save, delete, read-with-delete) execute in a
+/// predictable order, so a check-then-delete cannot race with a concurrent
+/// write of a newer record.
+class _StorageMutex {
+  Completer<void>? _current;
+
+  Future<T> run<T>(Future<T> Function() op) async {
+    final myTurn = Completer<void>.sync();
+    final prev = _current;
+    _current = myTurn;
+    try {
+      if (prev != null) await prev.future;
+      return await op();
+    } finally {
+      myTurn.complete();
+      if (identical(_current, myTurn)) _current = null;
+    }
   }
 }

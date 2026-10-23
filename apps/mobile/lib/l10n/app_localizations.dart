@@ -764,6 +764,30 @@ abstract class AppLocalizations {
   /// **'You changed the saved report, so it will be sent as a new report.'**
   String get restoredEditedNotice;
 
+  /// No description provided for @recordRetainedTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Your report is still saved'**
+  String get recordRetainedTitle;
+
+  /// No description provided for @recordRetainedBody.
+  ///
+  /// In en, this message translates to:
+  /// **'The report was accepted by the server, but SafeSignal could not delete the saved copy on this phone. No duplicate will be sent, but the report remains on this device until it is deleted.'**
+  String get recordRetainedBody;
+
+  /// No description provided for @deleteSavedReport.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete saved report'**
+  String get deleteSavedReport;
+
+  /// No description provided for @recordStillRetained.
+  ///
+  /// In en, this message translates to:
+  /// **'The report is still saved on this phone.'**
+  String get recordStillRetained;
+
   /// No description provided for @errKeyConflict.
   ///
   /// In en, this message translates to:
@@ -775,6 +799,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'The outcome of your report is unknown. It may or may not have arrived. The report is still saved on your phone. Tapping Submit report again is safe: the same report will not be sent twice while the server keeps running.'**
   String get errUnknownOutcome;
+
+  /// No description provided for @quickExitRecordRetainedTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Your report is still saved'**
+  String get quickExitRecordRetainedTitle;
+
+  /// No description provided for @quickExitRecordRetainedBody.
+  ///
+  /// In en, this message translates to:
+  /// **'SafeSignal could not delete the saved report on this phone before exiting. The app will still close, but the report remains on this device.'**
+  String get quickExitRecordRetainedBody;
+
+  /// No description provided for @quickExitExitAnyway.
+  ///
+  /// In en, this message translates to:
+  /// **'Exit anyway'**
+  String get quickExitExitAnyway;
+
+  /// No description provided for @quickExitTryAgain.
+  ///
+  /// In en, this message translates to:
+  /// **'Try again'**
+  String get quickExitTryAgain;
 }
 
 class _AppLocalizationsDelegate
