@@ -281,6 +281,10 @@ class AppLocalizationsSw extends AppLocalizations {
       'Bado huwezi kutafuta namba hii, na inaweza kuacha kufanya kazi.';
 
   @override
+  String get screenshotNote =>
+      'Picha za skrini na viideo vya skrini hufutwa kwenye skrini hii kwa faragha yako. Tumia Nakili namba ili kuhifadhi namba yako ya kumbukumbu.';
+
+  @override
   String get confirmNotice =>
       'Hakuna mtu aliyewasiliwa. Ripoti hii haijathibitishwa, kukaguliwa, wala kupelekwa kwingine, na hakuna kinachohifadhiwa kwenye simu yako. SafeSignal si huduma ya dharura. Ukiwa katika hatari ya haraka, piga 999 au 112.';
 

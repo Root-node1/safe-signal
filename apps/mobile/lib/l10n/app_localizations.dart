@@ -572,6 +572,12 @@ abstract class AppLocalizations {
   /// **'You cannot look this code up yet, and it may stop being valid.'**
   String get codeNote;
 
+  /// No description provided for @screenshotNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Screenshots and screen recordings are blocked on this screen for your privacy. Use Copy code to keep your reference code.'**
+  String get screenshotNote;
+
   /// No description provided for @confirmNotice.
   ///
   /// In en, this message translates to:

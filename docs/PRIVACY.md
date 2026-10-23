@@ -103,9 +103,9 @@ The Android app requests exactly one permission: internet access. It requests no
 camera, microphone, contacts, phone-state, notification or storage permission, and it runs no
 background service.
 
-One thing to be aware of: Android's automatic backup is **not** currently switched off for this
-app. Because the app writes no report data to disk today, a device backup contains no report. This
-is scheduled to be changed before reports can be saved on a phone — see section 4.3.
+One thing to be aware of: Android's automatic backup and device-to-device transfer are
+switched off for this app, so a device backup contains no SafeSignal data. This was changed
+before reports could be saved on a phone — see section 4.3.
 
 ### 4.3 Saving a report for later (planned — not available yet)
 

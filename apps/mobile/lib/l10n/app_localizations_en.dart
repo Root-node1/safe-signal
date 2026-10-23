@@ -279,6 +279,10 @@ class AppLocalizationsEn extends AppLocalizations {
       'You cannot look this code up yet, and it may stop being valid.';
 
   @override
+  String get screenshotNote =>
+      'Screenshots and screen recordings are blocked on this screen for your privacy. Use Copy code to keep your reference code.';
+
+  @override
   String get confirmNotice =>
       'Nobody has been contacted. This report has not been verified, reviewed, or forwarded, and nothing is saved on your phone. SafeSignal is not an emergency service. If you are in immediate danger, call 999 or 112.';
 

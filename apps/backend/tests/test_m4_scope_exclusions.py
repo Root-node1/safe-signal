@@ -253,6 +253,20 @@ def test_xr4_no_background_location_permission():
     assert "service" not in manifest.lower(), "a background service is declared"
 
 
+def test_sr133_backup_exclusion():
+    """SR-13.3 / T-22: the app is excluded from Android auto-backup and device transfer."""
+    manifest = read(MOBILE / "android/app/src/main/AndroidManifest.xml")
+    assert 'android:allowBackup="false"' in manifest, "allowBackup is not false"
+    assert 'android:dataExtractionRules="@xml/data_extraction_rules"' in manifest, (
+        "dataExtractionRules points at no rules file"
+    )
+    rules = read(MOBILE / "android/app/src/main/res/xml/data_extraction_rules.xml")
+    for section in ("cloud-backup", "device-transfer"):
+        assert f"<{section}>" in rules, f"{section} section is missing"
+    for domain in ("file", "database", "sharedpref", "external"):
+        assert f'<exclude domain="{domain}"' in rules, f"domain {domain} is not excluded"
+
+
 def test_xr5_no_mediapipe_or_vision_dependency():
     """XR-5: no MediaPipe or on-device vision dependency."""
     web = json.loads(read(FRONTEND / "package.json"))

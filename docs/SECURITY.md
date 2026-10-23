@@ -12,6 +12,7 @@ SafeSignal has not been security-audited or penetration-tested. This document de
 - **Logging:** only error classes and codes; no report content, keys, addresses or connection strings.
 - **Secrets:** `.env` files are git-ignored; templates hold placeholders; the mobile app must not embed secrets.
 - **Client:** no accounts, no analytics; Quick Exit; phone numbers and GPS are never sent with a report.
+- **Android hardening (M.4):** `FLAG_SECURE` is set on the activity window, so screenshots, screen recording and the recent-apps thumbnail cannot capture any screen — including the reference code on the confirmation screen. Use "Copy code" to keep the reference code. Android auto-backup and device-to-device transfer are disabled (`android:allowBackup="false"` with a `data_extraction_rules` file that excludes all app data domains), so a saved pending report is never copied off the device. The release manifest declares only `android.permission.INTERNET` — no location, background, notification or storage permission.
 
 ## Privacy considerations
 Reports may reveal where and when someone was harmed, vehicle plates, SACCO names and free-text locations. Treat the database and backups as sensitive. The product does not guarantee anonymity or confidentiality, and the interface should not suggest otherwise. `consentToShare` is stored but nothing shares data. No retention or deletion policy is implemented; an operator can delete a report by reference code (see DATABASE.md).
