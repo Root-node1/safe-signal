@@ -5,18 +5,24 @@ import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:safesignal/api/report_api.dart';
 import 'package:safesignal/storage/pending_draft_store.dart';
+import 'package:safesignal/storage/in_memory_pending_draft_store.dart';
 import 'package:safesignal/app.dart';
 
 /// Fake server: always accepts and returns a reference code. No real network.
 ReportApi okApi() => ReportApi(
-      baseUrl: 'http://test.invalid',
-      client: MockClient((_) async => http.Response(
-          '{"code":"SS-ABCD-2345","id":"x","status":"Received"}', 201)),
-    );
+  baseUrl: 'http://test.invalid',
+  client: MockClient(
+    (_) async => http.Response(
+      '{"code":"SS-ABCD-2345","id":"x","status":"Received"}',
+      201,
+    ),
+  ),
+);
 
-Widget app({PendingDraftStore? pendingStore, PendingDraftClock? clock}) => SafeSignalApp(
+Widget app({PendingDraftStore? pendingStore, PendingDraftClock? clock}) =>
+    SafeSignalApp(
       api: okApi(),
-      pendingStore: pendingStore,
+      pendingStore: pendingStore ?? InMemoryPendingDraftStore(),
       clock: clock,
     );
 
@@ -85,10 +91,12 @@ Future<void> tapButton(WidgetTester tester, String label) async {
 }
 
 /// Report screen -> Continue -> pick an option -> Review.
-Future<void> toReview(WidgetTester tester,
-    {String option = 'Submit without contacting anyone',
-    String next = 'Continue',
-    String review = 'Review'}) async {
+Future<void> toReview(
+  WidgetTester tester, {
+  String option = 'Submit without contacting anyone',
+  String next = 'Continue',
+  String review = 'Review',
+}) async {
   await tapButton(tester, next);
   await tapText(tester, option);
   await tapButton(tester, review);
@@ -162,8 +170,7 @@ String? dialogSemanticsLabel(WidgetTester tester) {
   String? found;
   void walk(SemanticsNode node) {
     final role = node.role;
-    if ((role == SemanticsRole.dialog ||
-        role == SemanticsRole.alertDialog) &&
+    if ((role == SemanticsRole.dialog || role == SemanticsRole.alertDialog) &&
         node.label.trim().isNotEmpty) {
       found = node.label;
       return;

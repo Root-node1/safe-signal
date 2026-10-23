@@ -390,10 +390,37 @@ class AppLocalizationsSw extends AppLocalizations {
       'Umebadilisha ripoti iliyopotekwa, kwa hiyo itatumwa kama ripoti mpya.';
 
   @override
+  String get recordRetainedTitle => 'Ripoti yako bado iko hifadhiwa';
+
+  @override
+  String get recordRetainedBody =>
+      'Seva ilikubali ripoti yako, lakini SafeSignal haikuweza kufuta nakili iliyohifadhiwa kwenye simu yako. Hakuna nakala nyingine itatumwa, lakini ripoti bado iko kwenye seva hivi karibu itakaposafiri.';
+
+  @override
+  String get deleteSavedReport => 'Futa ripoti iliyopotekwa';
+
+  @override
+  String get recordStillRetained =>
+      'Ripoti bado imehifadhiwa kwenye simu yako.';
+
+  @override
   String get errKeyConflict =>
       'Seva imekuta jarzamo na uficho wa ripoti hii. Ufumio mpya utatumika katika jaribu kipya, kwa hiyo itatumwa kama ripoti mpya.';
 
   @override
   String get errUnknownOutcome =>
       'Matokeo ya ripoti yako hayajajulikani. Inaweza kufika au kutokafika. Ripoti bado imehifadhiwa kwenye simu yako. Kubonya Tuma ripoti tena ni salama: ripoti hiyo haijatumiwa tena mara wakati seva inaendelea kufanya kazi.';
+
+  @override
+  String get quickExitRecordRetainedTitle => 'Ripoti yako bado iko hifadhiwa';
+
+  @override
+  String get quickExitRecordRetainedBody =>
+      'SafeSignal haikuweza kufuta ripoti iliyopotekwa kwenye simu yako kabla ya kutoka. Programu itafunga bado, lakini ripoti bado iko kwenye seva hivi karibu itakaposafiri.';
+
+  @override
+  String get quickExitExitAnyway => 'Toka hata hivyo';
+
+  @override
+  String get quickExitTryAgain => 'Jaribu tena';
 }

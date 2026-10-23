@@ -142,8 +142,16 @@
   "discardFailedTitle": "Could not delete the saved report.",
   "discardFailedBody": "The report is still saved on this phone.",
   "restoredEditedNotice": "You changed the saved report, so it will be sent as a new report.",
+  "recordRetainedTitle": "Your report is still saved",
+  "recordRetainedBody": "The report was accepted by the server, but SafeSignal could not delete the saved copy on this phone. No duplicate will be sent, but the report remains on this device until it is deleted.",
+  "deleteSavedReport": "Delete saved report",
+  "recordStillRetained": "The report is still saved on this phone.",
   "errKeyConflict": "The server found a conflict with this report key. A new key will be used for the next attempt, so this will be sent as a new report.",
   "errUnknownOutcome": "The outcome of your report is unknown. It may or may not have arrived. The report is still saved on your phone. Tapping Submit report again is safe: the same report will not be sent twice while the server keeps running.",
+  "quickExitRecordRetainedTitle": "Your report is still saved",
+  "quickExitRecordRetainedBody": "SafeSignal could not delete the saved report on this phone before exiting. The app will still close, but the report remains on this device.",
+  "quickExitExitAnyway": "Exit anyway",
+  "quickExitTryAgain": "Try again",
   "@restoreSavedAt": {
     "placeholders": {
       "date": {
