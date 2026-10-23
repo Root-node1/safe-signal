@@ -6,6 +6,7 @@
 // covered by report_api_test.dart.
 
 import 'dart:async';
+import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -558,6 +559,390 @@ void main() {
 
       expect(tester.takeException(), isNull);
     });
+  });
+
+  // ─── T-18 Restored-report submission notices ───────────────────────────────
+
+  group('T-18 restored-report submission notices', () {
+    testWidgets('shows the edited-report notice when the draft is changed after saving',
+        (tester) async {
+      tallPhone(tester);
+      final store = InMemoryPendingDraftStore();
+      final controller = SubmissionController(
+        api: okApi(),
+        draft: fullDraft(),
+        pendingStore: store,
+        clock: () => DateTime.utc(2026, 1, 1, 12),
+      );
+      await controller.savePending();
+      // Editing after saving makes the draft differ from the saved record.
+      controller.draft.route = 'Edited Route';
+
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: buildSafeSignalTheme(),
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: ReviewScreen(controller: controller),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(
+        find.text('You changed the saved report, so it will be sent as a new report.'),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('does not show the edited-report notice when the draft matches the saved report',
+        (tester) async {
+      tallPhone(tester);
+      final store = InMemoryPendingDraftStore();
+      final controller = SubmissionController(
+        api: okApi(),
+        draft: fullDraft(),
+        pendingStore: store,
+        clock: () => DateTime.utc(2026, 1, 1, 12),
+      );
+      await controller.savePending();
+
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: buildSafeSignalTheme(),
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: ReviewScreen(controller: controller),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(
+        find.text('You changed the saved report, so it will be sent as a new report.'),
+        findsNothing,
+      );
+    });
+
+    testWidgets('shows the unknown-outcome message on a socket failure with a saved report',
+        (tester) async {
+      tallPhone(tester);
+      final store = InMemoryPendingDraftStore();
+      final controller = SubmissionController(
+        api: ReportApi(
+          baseUrl: 'https://api.example.test/',
+          client: MockClient((_) async => throw const SocketException('offline')),
+        ),
+        draft: fullDraft(),
+        pendingStore: store,
+        clock: () => DateTime.utc(2026, 1, 1, 12),
+      );
+      await controller.savePending();
+
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: buildSafeSignalTheme(),
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: ReviewScreen(controller: controller),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await controller.submit();
+      await tester.pumpAndSettle();
+
+      expect(
+        find.text(
+          'The outcome of your report is unknown. It may or may not have arrived. '
+          'The report is still saved on your phone. Tapping Submit report again '
+          'is safe: the same report will not be sent twice while the server keeps running.',
+        ),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('shows the unknown-outcome message on a timeout with a saved report',
+        (tester) async {
+      tallPhone(tester);
+      final store = InMemoryPendingDraftStore();
+      final controller = SubmissionController(
+        api: ReportApi(
+          baseUrl: 'https://api.example.test/',
+          client: MockClient((_) async => throw TimeoutException('timed out')),
+        ),
+        draft: fullDraft(),
+        pendingStore: store,
+        clock: () => DateTime.utc(2026, 1, 1, 12),
+      );
+      await controller.savePending();
+
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: buildSafeSignalTheme(),
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: ReviewScreen(controller: controller),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await controller.submit();
+      await tester.pumpAndSettle();
+
+      expect(
+        find.text(
+          'The outcome of your report is unknown. It may or may not have arrived. '
+          'The report is still saved on your phone. Tapping Submit report again '
+          'is safe: the same report will not be sent twice while the server keeps running.',
+        ),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('shows the key-conflict message on a 409 with a saved report',
+        (tester) async {
+      tallPhone(tester);
+      final store = InMemoryPendingDraftStore();
+      final controller = SubmissionController(
+        api: ReportApi(
+          baseUrl: 'https://api.example.test/',
+          client: MockClient((_) async => http.Response('conflict', 409)),
+        ),
+        draft: fullDraft(),
+        pendingStore: store,
+        clock: () => DateTime.utc(2026, 1, 1, 12),
+      );
+      await controller.savePending();
+
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: buildSafeSignalTheme(),
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: ReviewScreen(controller: controller),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await controller.submit();
+      await tester.pumpAndSettle();
+
+      expect(
+        find.text(
+          'The server found a conflict with this report key. A new key will be used '
+          'for the next attempt, so this will be sent as a new report.',
+        ),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('T-18 notices are localised in Kiswahili', (tester) async {
+      tallPhone(tester);
+      final store = InMemoryPendingDraftStore();
+      final controller = SubmissionController(
+        api: ReportApi(
+          baseUrl: 'https://api.example.test/',
+          client: MockClient((_) async => http.Response('conflict', 409)),
+        ),
+        draft: fullDraft(),
+        pendingStore: store,
+        clock: () => DateTime.utc(2026, 1, 1, 12),
+      );
+      await controller.savePending();
+
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: buildSafeSignalTheme(),
+          locale: const Locale('sw'),
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: ReviewScreen(controller: controller),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await controller.submit();
+      await tester.pumpAndSettle();
+
+       expect(
+         find.text(
+           'Seva imekuta jarzamo na uficho wa ripoti hii. Ufumio mpya utatumika '
+           'katika jaribu kipya, kwa hiyo itatumwa kama ripoti mpya.',
+         ),
+         findsOneWidget,
+       );
+     });
+
+     testWidgets('restored unchanged report: timeout shows the saved-report message',
+         (tester) async {
+       tallPhone(tester);
+       final store = InMemoryPendingDraftStore();
+
+       // Save in one controller (simulating a prior session).
+       final saver = SubmissionController(
+         api: okApi(),
+         draft: fullDraft(),
+         pendingStore: store,
+         clock: () => DateTime.utc(2026, 1, 1, 12),
+       );
+       await saver.savePending();
+
+       // Restore in a fresh controller.
+       final controller = SubmissionController(
+         api: ReportApi(
+           baseUrl: 'https://api.example.test/',
+           client: MockClient((_) async => throw TimeoutException('timed out')),
+         ),
+         draft: ReportDraft(),
+         pendingStore: store,
+         clock: () => DateTime.utc(2026, 1, 1, 13),
+       );
+       await controller.restorePending();
+       // The restored draft matches the stored record's key and payload.
+       expect(controller.pendingMatchesAttempt, isTrue);
+
+       await tester.pumpWidget(
+         MaterialApp(
+           theme: buildSafeSignalTheme(),
+           localizationsDelegates: AppLocalizations.localizationsDelegates,
+           supportedLocales: AppLocalizations.supportedLocales,
+           home: ReviewScreen(controller: controller),
+         ),
+       );
+       await tester.pumpAndSettle();
+
+       await controller.submit();
+       await tester.pumpAndSettle();
+
+       expect(
+         find.text(
+           'The outcome of your report is unknown. It may or may not have arrived. '
+           'The report is still saved on your phone. Tapping Submit report again '
+           'is safe: the same report will not be sent twice while the server keeps running.',
+         ),
+         findsOneWidget,
+       );
+     });
+
+     testWidgets('restored then edited (not saved): timeout does not claim the saved report',
+         (tester) async {
+       tallPhone(tester);
+       final store = InMemoryPendingDraftStore();
+
+       final saver = SubmissionController(
+         api: okApi(),
+         draft: fullDraft(),
+         pendingStore: store,
+         clock: () => DateTime.utc(2026, 1, 1, 12),
+       );
+       await saver.savePending();
+
+       final controller = SubmissionController(
+         api: ReportApi(
+           baseUrl: 'https://api.example.test/',
+           client: MockClient((_) async => throw TimeoutException('timed out')),
+         ),
+         draft: ReportDraft(),
+         pendingStore: store,
+         clock: () => DateTime.utc(2026, 1, 1, 13),
+       );
+       await controller.restorePending();
+
+        // Edit without saving: submitting will mint a new key for the edited
+        // payload, so the stored record (old key) will no longer match the
+        // attempt.
+        controller.draft.route = 'Jogoo Road';
+
+        await tester.pumpWidget(
+          MaterialApp(
+            theme: buildSafeSignalTheme(),
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            home: ReviewScreen(controller: controller),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        await controller.submit();
+        await tester.pumpAndSettle();
+
+        // After submit, the key no longer matches the stored record.
+        expect(controller.pendingMatchesAttempt, isFalse);
+
+        // The unknown-outcome message (which claims "The report is still saved
+        // on your phone") must NOT be shown: the saved report's key/payload do
+        // not match what was attempted.
+        expect(
+          find.text(
+            'The outcome of your report is unknown. It may or may not have arrived. '
+            'The report is still saved on your phone. Tapping Submit report again '
+            'is safe: the same report will not be sent twice while the server keeps running.',
+          ),
+          findsNothing,
+        );
+       // The plain timeout message — which does not claim a saved report — is
+       // shown instead.
+       expect(
+         find.text(
+           'The server took too long to respond. Your report may or may not have arrived. '
+           'You can tap Submit report again: retrying the same report will not create '
+           'a duplicate while the server keeps running.',
+         ),
+         findsOneWidget,
+       );
+     });
+
+     testWidgets('restored, edited and saved: timeout shows the saved-report message',
+         (tester) async {
+       tallPhone(tester);
+       final store = InMemoryPendingDraftStore();
+
+       final saver = SubmissionController(
+         api: okApi(),
+         draft: fullDraft(),
+         pendingStore: store,
+         clock: () => DateTime.utc(2026, 1, 1, 12),
+       );
+       await saver.savePending();
+
+       final controller = SubmissionController(
+         api: ReportApi(
+           baseUrl: 'https://api.example.test/',
+           client: MockClient((_) async => throw TimeoutException('timed out')),
+         ),
+         draft: ReportDraft(),
+         pendingStore: store,
+         clock: () => DateTime.utc(2026, 1, 1, 13),
+       );
+       await controller.restorePending();
+
+       // Edit and explicitly save: the stored record now carries the new key
+       // and payload, so the attempt's identity matches the saved record.
+       controller.draft.route = 'Jogoo Road';
+       await controller.savePending();
+       expect(controller.pendingMatchesAttempt, isTrue);
+
+       await tester.pumpWidget(
+         MaterialApp(
+           theme: buildSafeSignalTheme(),
+           localizationsDelegates: AppLocalizations.localizationsDelegates,
+           supportedLocales: AppLocalizations.supportedLocales,
+           home: ReviewScreen(controller: controller),
+         ),
+       );
+       await tester.pumpAndSettle();
+
+       await controller.submit();
+       await tester.pumpAndSettle();
+
+       expect(
+         find.text(
+           'The outcome of your report is unknown. It may or may not have arrived. '
+           'The report is still saved on your phone. Tapping Submit report again '
+           'is safe: the same report will not be sent twice while the server keeps running.',
+         ),
+         findsOneWidget,
+       );
+     });
   });
 }
 

@@ -39,6 +39,25 @@ class SucceededButDraftChanged extends SubmissionState {
   final SupportOption? support;
 }
 
+/// The backend accepted the report (confirmed 2xx), but the saved record could
+/// not be deleted from the device.
+///
+/// The report is filed — the reference code is kept — but the saved draft and
+/// its record are left intact, so the user can retry or keep them. This is
+/// deliberately **not** a [Succeeded] state, so nothing treats the saved report
+/// as cleared: the review screen does not navigate to a confirmation screen,
+/// the draft is not cleared, and the key is not forgotten. T-19 extends this
+/// with recovery UI (FR-5.4, RR-4.3).
+class SucceededButRecordRetained extends SubmissionState {
+  const SucceededButRecordRetained(this.code, this.support, this.deleteError);
+  final String code;
+  final SupportOption? support;
+
+  /// Why the saved record could not be deleted. Carried so T-19 can surface a
+  /// specific message (FR-5.4, RR-4.3).
+  final PendingDraftDeleteFailed deleteError;
+}
+
 class ValidationFailed extends SubmissionState {
   const ValidationFailed();
 }
@@ -54,7 +73,12 @@ class RateLimited extends SubmissionState {
 }
 
 class UnexpectedResponse extends SubmissionState {
-  const UnexpectedResponse();
+  const UnexpectedResponse({this.keyConflict = false});
+
+  /// Whether the server returned a 409 because the idempotency key was already
+  /// used with different content. The controller mints a new key for the next
+  /// attempt; the UI explains this to the user (FR-5.2, RR-3.2).
+  final bool keyConflict;
 }
 
 class NotConfigured extends SubmissionState {
@@ -153,6 +177,31 @@ class SubmissionController extends ChangeNotifier {
   PendingDraftStoreException? _pendingReadError;
   PendingDraftStoreException? get pendingReadError => _pendingReadError;
 
+  /// Whether the current draft differs from the saved pending report.
+  ///
+  /// True when a saved report exists and the user has changed the draft since
+  /// restoring/saving it, so the next submission will use a new key and the
+  /// "edited report" notice should be shown (FR-5.2).
+  bool get reportWasEdited {
+    final outcome = _pendingOutcome;
+    if (outcome is! PendingDraftAvailable) return false;
+    return jsonEncode(ReportApi.payload(draft)) != outcome.draft.canonicalPayload;
+  }
+
+  /// Whether the saved pending record matches the report that was actually sent.
+  ///
+  /// True only when the stored record's key and canonical payload match the
+  /// controller's current key and signature — i.e. the saved record is the one
+  /// the last attempt used. The uncertain-outcome banner uses this so it never
+  /// claims a saved report for a draft that was edited after the last attempt
+  /// without saving (T-18, FR-5.2).
+  bool get pendingMatchesAttempt {
+    final outcome = _pendingOutcome;
+    if (outcome is! PendingDraftAvailable) return false;
+    return _key == outcome.draft.key &&
+        _signature == outcome.draft.canonicalPayload;
+  }
+
   SubmissionState _state = const Idle();
   SubmissionState get state => _state;
   bool get isSubmitting => _state is Submitting;
@@ -206,7 +255,27 @@ class SubmissionController extends ChangeNotifier {
           _set(SucceededButDraftChanged(code, submittedSupport));
           return;
         }
-        final support = draft.support;
+         final support = draft.support;
+        // On a confirmed 2xx, delete the pending record (FR-5.4). The deletion
+        // only runs when a record was confirmed to exist — the startup read
+        // already told us so — so we never ask the keystore to delete something
+        // it was never able to read.
+        final store = pendingStore;
+        if (store != null && _pendingOutcome is PendingDraftAvailable) {
+          try {
+            await store.delete();
+          } on PendingDraftDeleteFailed catch (e) {
+            // The backend accepted the report, but the saved record could not
+            // be deleted. Preserve the accepted state and the saved record;
+            // do not retry the HTTP submission, and do not clear the draft or
+            // key. Surface a distinguishable state so T-19 can extend it with
+            // recovery UI (FR-5.4, RR-4.3).
+            _set(SucceededButRecordRetained(code, support, e));
+            return;
+          }
+        }
+        _pendingOutcome = const PendingDraftAbsent();
+        _pendingReadError = null;
         _forget();
         draft.clear();
         _set(Succeeded(code, support));
@@ -220,7 +289,7 @@ class SubmissionController extends ChangeNotifier {
         // A key conflict only invalidates the key that was used for this
         // request. A newer draft keeps its own key.
         if (keyConflict && !draftChanged) _forget();
-        _set(const UnexpectedResponse());
+        _set(UnexpectedResponse(keyConflict: keyConflict));
       case SubmitNotConfigured():
         if (!draftChanged) _forget();
         _set(const NotConfigured());
@@ -347,6 +416,9 @@ class SubmissionController extends ChangeNotifier {
     // its own key and body before it was sent.
     _key = candidate;
     _signature = signature;
+    _pendingOutcome = PendingDraftAvailable(record);
+    _pendingReadError = null;
+    notifyListeners();
     return const SaveSucceeded();
   }
 
@@ -432,6 +504,7 @@ class SubmissionController extends ChangeNotifier {
     if (_state is! Submitting &&
         _state is! Succeeded &&
         _state is! SucceededButDraftChanged &&
+        _state is! SucceededButRecordRetained &&
         _state is! Idle) {
       _set(const Idle());
     }

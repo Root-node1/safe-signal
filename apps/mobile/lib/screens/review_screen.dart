@@ -158,16 +158,24 @@ class _ReviewScreenState extends State<ReviewScreen> {
                     ),
                   ),
                 ),
-                if (_message(l, _c.state) case final msg?) ...[
-                   const SizedBox(height: kSpace4),
-                   // The error variant is a live region, so TalkBack announces
-                   // the message as soon as it appears.
-                   SafeSignalBanner(
-                     variant: SafeSignalBannerVariant.error,
-                     title: '',
-                     body: msg,
-                   ),
-                 ],
+                 if (_c.reportWasEdited) ...[
+                    const SizedBox(height: kSpace4),
+                    SafeSignalBanner(
+                      variant: SafeSignalBannerVariant.notice,
+                      title: '',
+                      body: l.restoredEditedNotice,
+                    ),
+                  ],
+                 if (_message(l) case final msg?) ...[
+                    const SizedBox(height: kSpace4),
+                    // The error variant is a live region, so TalkBack announces
+                    // the message as soon as it appears.
+                    SafeSignalBanner(
+                      variant: SafeSignalBannerVariant.error,
+                      title: '',
+                      body: msg,
+                    ),
+                  ],
                  // Discard failure banner (T-17). The record was not deleted;
                  // the app does not claim success (FR-3.3, RR-4.3).
                  if (_discardFailed) ...[
@@ -233,18 +241,23 @@ class _ReviewScreenState extends State<ReviewScreen> {
       v.trim().isEmpty ? l.notProvided : v.trim();
 
   /// Wording for every non-success outcome. The report stays on screen for a retry.
-  static String? _message(AppLocalizations l, SubmissionState s) => switch (s) {
+  String? _message(AppLocalizations l) => switch (_c.state) {
         ValidationFailed() => l.errValidation,
+        NetworkFailed() when _c.pendingMatchesAttempt =>
+          l.errUnknownOutcome,
         NetworkFailed(timedOut: true) => l.errTimeout,
         NetworkFailed() => l.errOffline,
         RateLimited(:final retryAfterSeconds) =>
           l.errRateLimited(_wait(l, retryAfterSeconds)),
+        UnexpectedResponse(keyConflict: true)
+        when _c.pendingOutcome is PendingDraftAvailable =>
+          l.errKeyConflict,
         UnexpectedResponse() => l.errUnexpected,
         NotConfigured() => l.errNotConfigured,
         _ => null,
       };
 
-  static String _wait(AppLocalizations l, int? seconds) {
+  String _wait(AppLocalizations l, int? seconds) {
     if (seconds == null || seconds <= 0) return l.waitAWhile;
     if (seconds < 90) return l.waitSeconds(seconds);
     return l.waitMinutes((seconds / 60).ceil());

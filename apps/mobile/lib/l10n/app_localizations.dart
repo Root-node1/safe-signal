@@ -757,6 +757,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'The report is still saved on this phone.'**
   String get discardFailedBody;
+
+  /// No description provided for @restoredEditedNotice.
+  ///
+  /// In en, this message translates to:
+  /// **'You changed the saved report, so it will be sent as a new report.'**
+  String get restoredEditedNotice;
+
+  /// No description provided for @errKeyConflict.
+  ///
+  /// In en, this message translates to:
+  /// **'The server found a conflict with this report key. A new key will be used for the next attempt, so this will be sent as a new report.'**
+  String get errKeyConflict;
+
+  /// No description provided for @errUnknownOutcome.
+  ///
+  /// In en, this message translates to:
+  /// **'The outcome of your report is unknown. It may or may not have arrived. The report is still saved on your phone. Tapping Submit report again is safe: the same report will not be sent twice while the server keeps running.'**
+  String get errUnknownOutcome;
 }
 
 class _AppLocalizationsDelegate

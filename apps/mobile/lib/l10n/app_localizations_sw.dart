@@ -384,4 +384,16 @@ class AppLocalizationsSw extends AppLocalizations {
 
   @override
   String get discardFailedBody => 'Ripoti bado imehifadhiwa kwenye simu yako.';
+
+  @override
+  String get restoredEditedNotice =>
+      'Umebadilisha ripoti iliyopotekwa, kwa hiyo itatumwa kama ripoti mpya.';
+
+  @override
+  String get errKeyConflict =>
+      'Seva imekuta jarzamo na uficho wa ripoti hii. Ufumio mpya utatumika katika jaribu kipya, kwa hiyo itatumwa kama ripoti mpya.';
+
+  @override
+  String get errUnknownOutcome =>
+      'Matokeo ya ripoti yako hayajajulikani. Inaweza kufika au kutokafika. Ripoti bado imehifadhiwa kwenye simu yako. Kubonya Tuma ripoti tena ni salama: ripoti hiyo haijatumiwa tena mara wakati seva inaendelea kufanya kazi.';
 }

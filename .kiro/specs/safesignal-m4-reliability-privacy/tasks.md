@@ -1129,9 +1129,31 @@ uncertain outcome.
 notice and the unknown-outcome banner.
 
 **Manual verification:** none beyond T-29.
----
 
-## Task 19 — Delete the pending record on success and on Quick Exit
+**Status: Complete.** `SubmissionController.SubmitAccepted` now catches
+`PendingDraftDeleteFailed` and surfaces a `SucceededButRecordRetained` state
+that preserves the accepted code, the draft, the idempotency key, and the saved
+record — it does not retry the HTTP submission, clear the draft, or forget the
+key. `acknowledgeFailure()` excludes this state so it is not cleared on
+re-entry. `ReviewScreen._message` shows `errUnknownOutcome` only when the
+stored record's key AND canonical payload match the attempt (`pendingMatchesAttempt`),
+so an edited-but-unsaved report that times out no longer gets a false
+saved-report claim. HTTP-level tests assert the raw `request.body` string equals
+`saved.canonicalPayload` byte-for-byte for an unchanged restore. `flutter
+gen-l10n` clean; `flutter analyze --fatal-infos` no issues; `flutter test -r
+expanded` 373 passed, 1 skipped.
+
+**T-19 dependencies:**
+1. `SucceededButRecordRetained` user-facing confirmation and recovery UI
+   (confirmation screen with the reference code; a "Delete saved report" action).
+2. Successful-submission deletion failure handling — the `deleteError` carried by
+   the state enables a specific error banner (FR-5.5) that T-19 must surface.
+3. Quick Exit pending-record deletion and failure recovery
+   (`apps/mobile/lib/widgets/quick_exit_button.dart`).
+4. Race-safe deletion: delete the record only when the current key matches the
+   stored record's key, so a late 2xx for an older draft cannot remove a newer
+   saved report (FR-5.4, RR-4.3).
+---
 
 **Objective:** Close the deletion lifecycle: after a confirmed submission, and on Quick Exit.
 

@@ -82,6 +82,47 @@ class FakeKeyValue implements SecureKeyValue {
   }
 }
 
+/// A [PendingDraftStore] whose [delete] always throws
+/// [PendingDraftDeleteFailed], while [read] and [write] behave like an
+/// in-memory store. Used to verify that a confirmed 2xx does not crash when
+/// the local deletion fails (T-18, FR-5.4, RR-4.3).
+class _DeleteFailingStore implements PendingDraftStore {
+  PendingDraft? _record;
+  int deleteCount = 0;
+
+  @override
+  Future<PendingDraft?> read() async {
+    final draft = _record;
+    if (draft == null) return null;
+    if (!draft.verifyChecksum()) {
+      throw const PendingDraftCorrupt('checksum does not match');
+    }
+    return draft;
+  }
+
+  @override
+  Future<void> delete() async {
+    deleteCount++;
+    throw const PendingDraftDeleteFailed('delete failed');
+  }
+
+  @override
+  Future<void> write(PendingDraft draft) async {
+    _record = draft;
+  }
+
+  @override
+  Future<bool> isAvailable() async => true;
+}
+
+/// Captures the raw HTTP request body and key header as they are actually sent
+/// over the wire, for byte-level identity checks (T-18, Item 3).
+class _HttpRequest {
+  _HttpRequest(this.rawBody, this.key);
+  final String rawBody;
+  final String? key;
+}
+
 void main() {
   final savedAt = DateTime.fromMillisecondsSinceEpoch(1760000000000);
   final expiresAt = savedAt.add(const Duration(hours: 24));
@@ -797,6 +838,340 @@ void main() {
 
       expect(outcome.toString(), isNot(contains('Thika Road')));
       expect(outcome.toString(), isNot(contains('KDA 123A')));
+    });
+  });
+
+  group('T-18 restored-report submission paths', () {
+    /// Saves a report in one controller, then creates a fresh controller over
+    /// the same store and restores it, so the restored key and payload match
+    /// the saved record.
+    Future<SubmissionController> restoreReport(
+      PendingDraftStore store, {
+      required ReportApi api,
+      required DateTime clock,
+    }) async {
+      final saver = SubmissionController(
+        api: recordingApi([]),
+        draft: filledDraft(),
+        pendingStore: store,
+        clock: () => clock,
+      );
+      await saver.savePending();
+      final controller = SubmissionController(
+        api: api,
+        pendingStore: store,
+        clock: () => clock.add(const Duration(hours: 1)),
+      );
+      await controller.restorePending();
+      return controller;
+    }
+
+    test('a confirmed 2xx deletes the pending record', () async {
+      final seen = <SeenRequest>[];
+      final store = InMemoryPendingDraftStore();
+      final controller = await restoreReport(
+        store,
+        api: recordingApi(seen, status: 201),
+        clock: savedAt,
+      );
+
+      await controller.submit();
+
+      expect(controller.state, isA<Succeeded>());
+      expect(await store.read(), isNull, reason: 'record must be deleted');
+      expect(controller.currentKey, isNull);
+      expect(controller.pendingOutcome, const PendingDraftAbsent());
+    });
+
+    test('an uncertain outcome (socket failure) keeps the record and the key',
+        () async {
+      final seen = <SeenRequest>[];
+      final store = InMemoryPendingDraftStore();
+      final controller = await restoreReport(
+        store,
+        api: recordingApi(seen, failWith: true),
+        clock: savedAt,
+      );
+      final savedKey = (await store.read())!.key;
+
+      await controller.submit();
+
+      expect(controller.state, isA<NetworkFailed>());
+      expect((controller.state as NetworkFailed).timedOut, isFalse);
+      expect(controller.currentKey, savedKey);
+      expect(await store.read(), isNotNull, reason: 'record must be retained');
+    });
+
+    test('a 409 on a restored key clears the key and signals the conflict',
+        () async {
+      final seen = <SeenRequest>[];
+      final store = InMemoryPendingDraftStore();
+      final controller = await restoreReport(
+        store,
+        api: recordingApi(seen, status: 409),
+        clock: savedAt,
+      );
+      final savedKey = (await store.read())!.key;
+      expect(controller.currentKey, savedKey, reason: 'restore installs the key');
+
+      await controller.submit();
+
+      final state = controller.state;
+      expect(state, isA<UnexpectedResponse>());
+      expect((state as UnexpectedResponse).keyConflict, isTrue);
+      // The key is dropped so the next attempt mints a new one.
+      expect(controller.currentKey, isNull);
+      // The record is retained so the user can retry.
+      expect(controller.pendingOutcome, isA<PendingDraftAvailable>());
+    });
+
+    test('reportWasEdited is false for an unchanged restore and true after an edit',
+        () async {
+      final seen = <SeenRequest>[];
+      final store = InMemoryPendingDraftStore();
+      final controller = await restoreReport(
+        store,
+        api: recordingApi(seen),
+        clock: savedAt,
+      );
+
+      expect(controller.reportWasEdited, isFalse);
+
+      controller.draft.route = 'Jogoo Road';
+      expect(controller.reportWasEdited, isTrue);
+    });
+
+    test('savePending updates pendingOutcome to reflect the saved record', () async {
+      final store = InMemoryPendingDraftStore();
+      final controller = SubmissionController(
+        api: recordingApi([]),
+        draft: filledDraft(),
+        pendingStore: store,
+        clock: () => savedAt,
+      );
+
+      await controller.savePending();
+
+      expect(controller.pendingOutcome, isA<PendingDraftAvailable>());
+    });
+
+    test('a 409 followed by a retry sends a new key', () async {
+      final seen = <SeenRequest>[];
+      final store = InMemoryPendingDraftStore();
+      final controller = await restoreReport(
+        store,
+        api: recordingApi(seen, statuses: [409, 201]),
+        clock: savedAt,
+      );
+      final savedKey = controller.currentKey;
+
+      // First attempt: unchanged, 409 → key cleared.
+      await controller.submit();
+      expect(controller.currentKey, isNull);
+
+      // Second attempt: same unchanged draft, new key is minted and succeeds.
+      await controller.submit();
+
+      expect(seen, hasLength(2));
+      expect(seen[0].key, savedKey);
+      expect(seen[1].key, isNotNull);
+      expect(seen[1].key, isNot(seen[0].key));
+    });
+
+    // ─── T-18 confirmed 2xx + deletion failure ────────────────────────────────
+
+    test('a confirmed 2xx with a failing delete retains the record '
+        'and surfaces a distinguishable state', () async {
+      final seen = <SeenRequest>[];
+      final store = _DeleteFailingStore();
+      final controller = await restoreReport(
+        store,
+        api: recordingApi(seen, status: 201),
+        clock: savedAt,
+      );
+
+      await controller.submit();
+
+      // The backend accepted the report.
+      expect(controller.state, isA<SucceededButRecordRetained>());
+      expect((controller.state as SucceededButRecordRetained).code,
+          'SS-ABCD-2345');
+      // The record is still on the device — not claimed as deleted.
+      expect(await store.read(), isNotNull);
+      // The key and draft are preserved — not cleared or forgotten.
+      expect(controller.currentKey, isNotNull);
+      expect(controller.draft.incident, isNotNull);
+    });
+
+    test('a confirmed 2xx with a failing delete does not retry the HTTP '
+        'submission', () async {
+      final seen = <SeenRequest>[];
+      final store = _DeleteFailingStore();
+      final controller = await restoreReport(
+        store,
+        api: recordingApi(seen, status: 201),
+        clock: savedAt,
+      );
+
+      await controller.submit();
+
+      expect(seen, hasLength(1), reason: 'exactly one submission, no retry');
+      expect(controller.state, isA<SucceededButRecordRetained>());
+    });
+
+    test('a confirmed 2xx with a failing delete keeps pendingOutcome '
+        'as PendingDraftAvailable', () async {
+      final seen = <SeenRequest>[];
+      final store = _DeleteFailingStore();
+      final controller = await restoreReport(
+        store,
+        api: recordingApi(seen, status: 201),
+        clock: savedAt,
+      );
+
+      await controller.submit();
+
+      expect(controller.pendingOutcome, isA<PendingDraftAvailable>());
+      // The pending record still has the original key.
+      expect(
+        (controller.pendingOutcome as PendingDraftAvailable).draft.key,
+        controller.currentKey,
+      );
+    });
+
+    test('pendingMatchesAttempt is true after a save and false after an edit+submit',
+        () async {
+      final seen = <SeenRequest>[];
+      final store = InMemoryPendingDraftStore();
+      final controller = SubmissionController(
+        api: recordingApi(seen, failWith: true),
+        draft: filledDraft(),
+        pendingStore: store,
+        clock: () => savedAt,
+      );
+      await controller.savePending();
+
+      // After saving, the stored key and signature match the controller's.
+      expect(controller.pendingMatchesAttempt, isTrue);
+
+      // Editing without saving does not change _key/_signature, but submitting
+      // mints a new key for the edited payload, so the stored record no longer
+      // matches the attempt.
+      controller.draft.route = 'Jogoo Road';
+      await controller.submit();
+      expect(controller.pendingMatchesAttempt, isFalse);
+    });
+
+    test('pendingMatchesAttempt is true after a restore and false after an edit+submit',
+        () async {
+      final seen = <SeenRequest>[];
+      final store = InMemoryPendingDraftStore();
+      final controller = await restoreReport(
+        store,
+        api: recordingApi(seen, failWith: true),
+        clock: savedAt,
+      );
+
+      expect(controller.pendingMatchesAttempt, isTrue);
+
+      controller.draft.route = 'Jogoo Road';
+      await controller.submit();
+      expect(controller.pendingMatchesAttempt, isFalse);
+
+      // Saving the edited draft realigns the stored record.
+      await controller.savePending();
+      expect(controller.pendingMatchesAttempt, isTrue);
+    });
+  });
+
+  // ─── T-18 HTTP-level request identity ─────────────────────────────────────────
+  //
+  // The existing test "sends the same key and the same body bytes" captures the
+  // actual HTTP request via MockClient, but [SeenRequest] stores the body
+  // decoded as a Map (jsonDecode) rather than the raw request.body string.
+  // Its key comparison is exact, but its body comparison goes through a
+  // decode → re-encode round-trip. The tests below capture the raw serialized
+  // HTTP body string and compare it byte-for-byte against the stored record's
+  // canonicalPayload, so there is no round-trip assumption.
+
+  group('T-18 HTTP-level request identity', () {
+    test('the unchanged restored report sends the exact stored key '
+        'and body bytes over HTTP', () async {
+      final seen = <_HttpRequest>[];
+      final store = InMemoryPendingDraftStore();
+      final saver = SubmissionController(
+        api: recordingApi([]),
+        draft: filledDraft(),
+        pendingStore: store,
+        clock: () => savedAt,
+      );
+      await saver.savePending();
+      final saved = await store.read();
+
+      final restorer = SubmissionController(
+        api: ReportApi(
+          baseUrl: 'https://api.example.test/',
+          client: MockClient((request) async {
+            seen.add(_HttpRequest(
+              request.body,
+              request.headers['Idempotency-Key'],
+            ));
+            return http.Response(jsonEncode({'code': 'SS-ABCD-2345'}), 201);
+          }),
+        ),
+        pendingStore: store,
+        clock: () => savedAt.add(const Duration(hours: 1)),
+      );
+      await restorer.restorePending();
+      await restorer.submit();
+
+      expect(seen, hasLength(1), reason: 'exactly one HTTP request');
+      // Byte-level comparison: the raw request body string equals the stored
+      // record's canonicalPayload — no decode/re-encode round-trip.
+      expect(seen.single.rawBody, saved!.canonicalPayload);
+      // Exact header comparison: the Idempotency-Key sent over HTTP is the key
+      // stored on the record.
+      expect(seen.single.key, saved.key);
+    });
+
+    test('an edited restored report sends a different key and body',
+        () async {
+      final seen = <_HttpRequest>[];
+      final store = InMemoryPendingDraftStore();
+      final saver = SubmissionController(
+        api: recordingApi([]),
+        draft: filledDraft(),
+        pendingStore: store,
+        clock: () => savedAt,
+      );
+      await saver.savePending();
+      final saved = await store.read();
+
+      final restorer = SubmissionController(
+        api: ReportApi(
+          baseUrl: 'https://api.example.test/',
+          client: MockClient((request) async {
+            seen.add(_HttpRequest(
+              request.body,
+              request.headers['Idempotency-Key'],
+            ));
+            return http.Response(jsonEncode({'code': 'SS-ABCD-2345'}), 201);
+          }),
+        ),
+        pendingStore: store,
+        clock: () => savedAt.add(const Duration(hours: 1)),
+      );
+      await restorer.restorePending();
+      restorer.draft.route = 'Jogoo Road';
+      await restorer.submit();
+
+      expect(seen, hasLength(1));
+      // A different key was minted for the edited report.
+      expect(seen.single.key, isNot(saved!.key));
+      // The body bytes differ from the stored record.
+      expect(seen.single.rawBody, isNot(saved.canonicalPayload));
+      // But the body is valid JSON encoding the edited draft.
+      expect(jsonDecode(seen.single.rawBody), containsPair('route', 'Jogoo Road'));
     });
   });
 }
