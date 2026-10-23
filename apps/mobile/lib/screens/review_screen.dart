@@ -5,6 +5,7 @@ import '../design_tokens.dart';
 import '../l10n/l10n.dart';
 import '../models/report_draft.dart';
 import '../navigation.dart';
+import '../storage/pending_draft_store.dart';
 import '../widgets/widgets.dart';
 import 'confirmation_screen.dart';
 
@@ -20,6 +21,14 @@ class ReviewScreen extends StatefulWidget {
 class _ReviewScreenState extends State<ReviewScreen> {
   SubmissionController get _c => widget.controller;
   ReportDraft get _d => _c.draft;
+
+  /// Whether a manual discard operation is in progress. Prevents double-taps
+  /// while the deletion is happening (FR-3.3, RR-4.3).
+  bool _isDiscarding = false;
+
+  /// Whether the last discard attempt failed. The record is still on the
+  /// device and an error banner is shown (FR-3.3).
+  bool _discardFailed = false;
 
   @override
   void initState() {
@@ -42,6 +51,34 @@ class _ReviewScreenState extends State<ReviewScreen> {
       );
     }
     setState(() {});
+  }
+
+  /// Confirms and performs a manual discard of the pending report, then returns
+  /// to the start of the reporting flow (FR-3.2). On failure the record is
+  /// retained and an error banner is shown (FR-3.3, RR-4.3).
+  Future<void> _onDiscard() async {
+    final navigator = Navigator.of(context);
+    final confirmed = await showDiscardConfirmation(context);
+    if (!mounted || !confirmed) return;
+
+    setState(() {
+      _isDiscarding = true;
+      _discardFailed = false;
+    });
+
+    try {
+      await _c.discardPending();
+      if (!mounted) return;
+      // Discard clears the draft and key and returns to the start of the flow.
+      navigator.popUntil((r) => r.isFirst);
+    } on PendingDraftDeleteFailed {
+      if (mounted) {
+        setState(() {
+          _isDiscarding = false;
+          _discardFailed = true;
+        });
+      }
+    }
   }
 
   @override
@@ -122,15 +159,25 @@ class _ReviewScreenState extends State<ReviewScreen> {
                   ),
                 ),
                 if (_message(l, _c.state) case final msg?) ...[
-                  const SizedBox(height: kSpace4),
-                  // The error variant is a live region, so TalkBack announces
-                  // the message as soon as it appears.
-                  SafeSignalBanner(
-                    variant: SafeSignalBannerVariant.error,
-                    title: '',
-                    body: msg,
-                  ),
-                ],
+                   const SizedBox(height: kSpace4),
+                   // The error variant is a live region, so TalkBack announces
+                   // the message as soon as it appears.
+                   SafeSignalBanner(
+                     variant: SafeSignalBannerVariant.error,
+                     title: '',
+                     body: msg,
+                   ),
+                 ],
+                 // Discard failure banner (T-17). The record was not deleted;
+                 // the app does not claim success (FR-3.3, RR-4.3).
+                 if (_discardFailed) ...[
+                   const SizedBox(height: kSpace4),
+                   SafeSignalBanner(
+                     variant: SafeSignalBannerVariant.error,
+                     title: l.discardFailedTitle,
+                     body: l.discardFailedBody,
+                   ),
+                 ],
                 if (submitting) ...[
                   const SizedBox(height: kSpace4),
                   Semantics(
@@ -144,14 +191,36 @@ class _ReviewScreenState extends State<ReviewScreen> {
                   onPressed: submitting ? null : _c.submit,
                   child: Text(submitting ? l.submitting : l.actionSubmit),
                 ),
-                const SizedBox(height: kSpace2),
-                OutlinedButton(
-                  style: OutlinedButton.styleFrom(
-                    minimumSize: Size.fromHeight(secondaryButtonHeight),
-                  ),
-                  onPressed: submitting ? null : () => Navigator.of(context).pop(),
-                  child: Text(l.actionEdit),
-                ),
+                 const SizedBox(height: kSpace2),
+                 OutlinedButton(
+                   style: OutlinedButton.styleFrom(
+                     minimumSize: Size.fromHeight(secondaryButtonHeight),
+                   ),
+                   onPressed: submitting ? null : () => Navigator.of(context).pop(),
+                   child: Text(l.actionEdit),
+                 ),
+                 // Discard saved report — only when a pending report exists.
+                 // Visually subordinate to Submit: a TextButton in the theme's
+                 // error colour (coral), not a FilledButton (T-17, FR-3.1).
+                 if (_c.pendingOutcome is PendingDraftAvailable) ...[
+                   const SizedBox(height: kSpace2),
+                   SizedBox(
+                     width: double.infinity,
+                     child: TextButton(
+                       style: TextButton.styleFrom(
+                         minimumSize: Size.fromHeight(kTouchMin),
+                         foregroundColor: scheme.error,
+                       ),
+                       onPressed:
+                           _isDiscarding ? null : () => _onDiscard(),
+                       child: _isDiscarding
+                           ? const SizedBox.square(
+                               child: CircularProgressIndicator(strokeWidth: 2),
+                             )
+                           : Text(l.discardAction),
+                     ),
+                   ),
+                 ],
               ],
             ),
           ),

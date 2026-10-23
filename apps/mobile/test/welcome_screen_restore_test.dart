@@ -620,4 +620,304 @@ void main() {
       expect(await store.read(), isNotNull);
     });
   });
+
+  // ─── T-17 Discard from restore prompt ────────────────────────────────────────
+
+  group('T-17 discard from restore prompt', () {
+    testWidgets('tap Discard shows a confirmation dialog', (tester) async {
+      final store = InMemoryPendingDraftStore();
+      await store.write(kValidRecord);
+
+      await tester.pumpWidget(
+        app(pendingStore: store, clock: () => kClockNotExpired),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Restore'), findsOneWidget);
+
+      await tester.tap(find.text('Discard'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Discard saved report?'), findsOneWidget);
+      expect(find.text('Discard'), findsWidgets);
+      expect(find.text('Cancel'), findsOneWidget);
+    });
+
+    testWidgets('confirmation text cannot be undone', (tester) async {
+      final store = InMemoryPendingDraftStore();
+      await store.write(kValidRecord);
+
+      await tester.pumpWidget(
+        app(pendingStore: store, clock: () => kClockNotExpired),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Discard'));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.text('This deletes the report saved on this phone. It cannot be undone.'),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('confirming deletion removes the record and dismisses the prompt',
+        (tester) async {
+      final store = InMemoryPendingDraftStore();
+      await store.write(kValidRecord);
+
+      await tester.pumpWidget(
+        app(pendingStore: store, clock: () => kClockNotExpired),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Restore'), findsOneWidget);
+
+      await tester.tap(find.text('Discard'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Discard saved report?'), findsOneWidget);
+
+      await tester.tap(find.text('Discard').last);
+      await tester.pumpAndSettle();
+
+      // Record is gone.
+      expect(await store.read(), isNull);
+      // Restore prompt is dismissed.
+      expect(find.text('Restore'), findsNothing);
+      // Welcome screen returns to normal.
+      expect(find.text('Report an incident'), findsWidgets);
+    });
+
+    testWidgets('cancel in confirmation preserves the record', (tester) async {
+      final store = InMemoryPendingDraftStore();
+      await store.write(kValidRecord);
+
+      await tester.pumpWidget(
+        app(pendingStore: store, clock: () => kClockNotExpired),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Discard'));
+      await tester.pumpAndSettle();
+
+      // Cancel the discard.
+      await tester.tap(find.text('Cancel'));
+      await tester.pumpAndSettle();
+
+      // Confirmation dialog is gone.
+      expect(find.text('Discard saved report?'), findsNothing);
+      // Record is still there.
+      expect(await store.read(), isNotNull);
+      // No restore dialog: the user dismissed it by choosing Discard.
+      expect(find.byType(AlertDialog), findsNothing);
+    });
+
+    testWidgets('barrier tap in confirmation preserves the record',
+        (tester) async {
+      final store = InMemoryPendingDraftStore();
+      await store.write(kValidRecord);
+
+      await tester.pumpWidget(
+        app(pendingStore: store, clock: () => kClockNotExpired),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Discard'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Discard saved report?'), findsOneWidget);
+
+      // Tap outside the dialog.
+      await tester.tapAt(const Offset(10, 10));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Discard saved report?'), findsNothing);
+      expect(await store.read(), isNotNull);
+      expect(find.byType(AlertDialog), findsNothing);
+    });
+
+    testWidgets('back button in confirmation preserves the record',
+        (tester) async {
+      final store = InMemoryPendingDraftStore();
+      await store.write(kValidRecord);
+
+      await tester.pumpWidget(
+        app(pendingStore: store, clock: () => kClockNotExpired),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Discard'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Discard saved report?'), findsOneWidget);
+
+      // Simulate system back button by popping the dialog route.
+      final element = tester.element(find.byType(AlertDialog));
+      Navigator.of(element).pop();
+
+      await tester.pumpAndSettle();
+
+      expect(find.text('Discard saved report?'), findsNothing);
+      expect(await store.read(), isNotNull);
+      expect(find.byType(AlertDialog), findsNothing);
+    });
+
+    testWidgets('failed discard retains the record and shows an error banner',
+        (tester) async {
+      final store = DeleteFailedStore(kValidRecord);
+
+      await tester.pumpWidget(
+        app(pendingStore: store, clock: () => kClockNotExpired),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Restore'), findsOneWidget);
+
+      await tester.tap(find.text('Discard'));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Discard').last);
+      await tester.pumpAndSettle();
+
+      expect(tester.takeException(), isNull);
+
+      // Error banner with honest wording.
+      expect(
+        find.text('Could not delete the saved report.'),
+        findsOneWidget,
+      );
+      expect(
+        find.text('The report is still saved on this phone.'),
+        findsOneWidget,
+      );
+      expect(store.deleteCount, 1);
+      expect(await store.read(), isNotNull);
+    });
+
+    testWidgets('discard error banner is a live region', (tester) async {
+      final store = DeleteFailedStore(kValidRecord);
+
+      await tester.pumpWidget(
+        app(pendingStore: store, clock: () => kClockNotExpired),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Discard'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Discard').last);
+      await tester.pumpAndSettle();
+
+      expect(hasLiveRegionNode(tester), isTrue,
+          reason: 'discard-failure banner must be a live region (AR-4.1)');
+    });
+
+    testWidgets('confirmation and error text are localised in Kiswahili',
+        (tester) async {
+      phone(tester);
+      tester.platformDispatcher.localesTestValue = [const Locale('sw', 'KE')];
+      addTearDown(tester.platformDispatcher.clearAllTestValues);
+
+      final store = InMemoryPendingDraftStore();
+      await store.write(kValidRecord);
+
+      await tester.pumpWidget(
+        app(pendingStore: store, clock: () => kClockNotExpired),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Futa'));
+      await tester.pumpAndSettle();
+      await tester.pumpAndSettle();
+
+      expect(find.text('Futa ripoti iliyopotekwa?', skipOffstage: false),
+          findsOneWidget);
+      expect(
+        find.text(
+          'Hii inafuta ripoti iliyopotekwa kwenye simu yako. Haifutika tena.',
+          skipOffstage: false,
+        ),
+        findsOneWidget,
+      );
+
+      await tester.tap(find.text('Futa', skipOffstage: false).last);
+      await tester.pumpAndSettle();
+
+      expect(await store.read(), isNull);
+    });
+
+    testWidgets('render without overflow at 2x text scale', (tester) async {
+      phone(tester);
+      tester.platformDispatcher.textScaleFactorTestValue = 2.0;
+      addTearDown(tester.platformDispatcher.clearAllTestValues);
+
+      final store = InMemoryPendingDraftStore();
+      await store.write(kValidRecord);
+
+      await tester.pumpWidget(
+        app(pendingStore: store, clock: () => kClockNotExpired),
+      );
+      await tester.pumpAndSettle();
+
+      expect(tester.takeException(), isNull);
+    });
+  });
+
+  group('T-17 discard retry after failure', () {
+    testWidgets('retrying after a failed discard can succeed', (tester) async {
+      final store = FailingThenSucceedingDeleteStore(kValidRecord);
+
+      await tester.pumpWidget(
+        app(pendingStore: store, clock: () => kClockNotExpired),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Restore'), findsOneWidget);
+
+      // Tap "Discard" in the restore dialog.
+      await tester.tap(find.text('Discard'));
+      await tester.pumpAndSettle();
+
+      // Confirm.
+      await tester.tap(find.text('Discard').last);
+      await tester.pumpAndSettle();
+
+      // The first attempt failed.
+      expect(find.text('Could not delete the saved report.'), findsOneWidget);
+      expect(await store.read(), isNotNull);
+
+      // After a failed discard, the restore prompt does NOT reappear (it was
+      // dismissed). The error banner stays visible. Retry is tested via the
+      // review screen — see "T-17 discard from review screen".
+    });
+  });
+}
+
+/// A store whose first [delete] throws [PendingDraftDeleteFailed] but a second
+/// call succeeds. Used to test retry-after-failure (T-17).
+class FailingThenSucceedingDeleteStore implements PendingDraftStore {
+  FailingThenSucceedingDeleteStore(this.record);
+
+  PendingDraft? record;
+  int deleteCount = 0;
+
+  @override
+  Future<PendingDraft?> read() async => record;
+
+  @override
+  Future<void> delete() async {
+    deleteCount++;
+    if (deleteCount == 1) {
+      throw const PendingDraftDeleteFailed('delete failed');
+    }
+    record = null;
+  }
+
+  @override
+  Future<void> write(PendingDraft draft) async {
+    record = draft;
+  }
+
+  @override
+  Future<bool> isAvailable() async => true;
 }

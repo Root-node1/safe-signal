@@ -715,6 +715,48 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'The report is still saved on this phone.'**
   String get restoreDeleteFailedBody;
+
+  /// No description provided for @discardAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Discard saved report'**
+  String get discardAction;
+
+  /// No description provided for @discardConfirmTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Discard saved report?'**
+  String get discardConfirmTitle;
+
+  /// No description provided for @discardConfirmBody.
+  ///
+  /// In en, this message translates to:
+  /// **'This deletes the report saved on this phone. It cannot be undone.'**
+  String get discardConfirmBody;
+
+  /// No description provided for @discardConfirmDelete.
+  ///
+  /// In en, this message translates to:
+  /// **'Discard'**
+  String get discardConfirmDelete;
+
+  /// No description provided for @discardCancel.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel'**
+  String get discardCancel;
+
+  /// No description provided for @discardFailedTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not delete the saved report.'**
+  String get discardFailedTitle;
+
+  /// No description provided for @discardFailedBody.
+  ///
+  /// In en, this message translates to:
+  /// **'The report is still saved on this phone.'**
+  String get discardFailedBody;
 }
 
 class _AppLocalizationsDelegate

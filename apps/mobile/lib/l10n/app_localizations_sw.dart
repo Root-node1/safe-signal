@@ -362,4 +362,26 @@ class AppLocalizationsSw extends AppLocalizations {
   @override
   String get restoreDeleteFailedBody =>
       'Ripoti bado imehifadhiwa kwenye simu yako.';
+
+  @override
+  String get discardAction => 'Futa ripoti iliyopotekwa';
+
+  @override
+  String get discardConfirmTitle => 'Futa ripoti iliyopotekwa?';
+
+  @override
+  String get discardConfirmBody =>
+      'Hii inafuta ripoti iliyopotekwa kwenye simu yako. Haifutika tena.';
+
+  @override
+  String get discardConfirmDelete => 'Futa';
+
+  @override
+  String get discardCancel => 'Ghairi';
+
+  @override
+  String get discardFailedTitle => 'Haukuweza kufuta ripoti iliyopotekwa.';
+
+  @override
+  String get discardFailedBody => 'Ripoti bado imehifadhiwa kwenye simu yako.';
 }

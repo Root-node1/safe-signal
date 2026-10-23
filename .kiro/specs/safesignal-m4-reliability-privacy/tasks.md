@@ -991,6 +991,18 @@ different key; the draft is unchanged by a save.
 
 ## Task 16 — Add the restore prompt
 
+**Status:** complete — implemented and verified by automated tests (22 October 2026). `9a8f53d`.
+`apps/mobile/lib/screens/welcome_screen.dart` shows a modal `AlertDialog` with Restore and Keep saved
+actions when a valid pending record exists; dismissing (back, barrier, Keep saved) preserves the
+record (FR-2.4). The prompt states when the report was saved and that it has not been submitted
+(FR-2.5); no incident content beyond the timestamp is shown. Accessibility: `AlertDialog` provides the
+dialog role and accessible name, focus moves into and out of the dialog, minimum 48 × 48 dp targets,
+and all banners are `Semantics(liveRegion: true)` (AR-1.2, AR-2.2, AR-4.1). Error states — corrupt,
+expired, unavailable, and failed-deletion — each show a live-region banner and never offer the bad
+record for restore (SR-4.2, SR-4.3, RR-4.3). `flutter gen-l10n` clean; `flutter analyze --fatal-infos`
+no issues; `flutter test` 332 passed, 1 skipped (the opt-in integration test, unchanged). Remaining
+accessibility and device-verification work stays with T-31, T-32.
+
 **Objective:** On startup, if a pending report exists, offer the user to restore it or to keep it
 saved — and never send it automatically.
 
@@ -1061,6 +1073,24 @@ fails.
 shows the error banner and keeps the record.
 
 **Manual verification:** TalkBack pass (T-31).
+
+**Status:** complete — implemented and verified by automated tests (23 October 2026).
+`apps/mobile/lib/widgets/discard_confirmation.dart` — a new `showDiscardConfirmation(BuildContext)` helper
+that returns `Future<bool>`: a modal `AlertDialog` titled "Discard saved report?" with the body
+"This deletes the report saved on this phone. It cannot be undone.", a Cancel button, and a destructive
+Discard button in the theme error colour. Barrier, back, and Cancel all return `false` (report preserved).
+`SubmissionController.discardPending()` (T-15) deletes the record, clears the draft and key, resets
+`_pendingOutcome` and `_pendingReadError`, and calls `notifyListeners`; a `_discarding` guard prevents
+duplicate deletion requests on double-tap. On `PendingDraftDeleteFailed` the failure is caught, the record
+is retained, and an error banner ("Could not delete the saved report." / "The report is still saved on
+this phone.") is shown as a live region (FR-3.3, RR-4.3). Widget tests cover: successful discard from the
+restore prompt (record gone, prompt dismissed, returns to Report an incident), successful discard from
+the review screen (pops to the first route), cancel/barrier/back in the confirmation all preserve the
+record (FR-3.2, FR-3.3), failed discard retains the record and shows the honest error banner (AR-4.1),
+discard error banner is a live region, English/ Kiswahili localisation, 2× text scaling on both screens,
+retry-after-failure. `flutter gen-l10n` clean; `flutter analyze --fatal-infos` no issues;
+`flutter test` 351 passed, 1 skipped.
+
 ---
 
 ## Task 18 — Make submission of a restored report correct

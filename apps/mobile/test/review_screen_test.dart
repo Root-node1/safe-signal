@@ -17,12 +17,33 @@ import 'package:safesignal/design_tokens.dart';
 import 'package:safesignal/l10n/l10n.dart';
 import 'package:safesignal/models/report_draft.dart';
 import 'package:safesignal/screens/review_screen.dart';
+import 'package:safesignal/storage/in_memory_pending_draft_store.dart';
+import 'package:safesignal/storage/pending_draft.dart';
+import 'package:safesignal/storage/pending_draft_store.dart';
 import 'package:safesignal/theme.dart';
 import 'package:safesignal/widgets/widgets.dart';
 
 import 'helpers.dart';
 
-// ─── Helpers ─────────────────────────────────────────────────────────────────
+/// A valid, unexpired draft record for discard tests.
+final PendingDraft kPendingRecord = PendingDraft(
+  payload: {
+    'incident': 'harassment',
+    'timing': 'now',
+    'route': 'Test Route',
+    'area': 'Test Area',
+    'vehicle': 'KDA 123A',
+    'sacco': 'Test SACCO',
+    'support': 'private',
+    'contactProvided': false,
+    'consentToShare': false,
+  },
+  key: 'review-test-key',
+  createdAt: DateTime.utc(2026, 1, 1).millisecondsSinceEpoch,
+  expiresAt: DateTime.utc(2026, 1, 1)
+      .add(const Duration(hours: 25))
+      .millisecondsSinceEpoch,
+);
 
 /// Pumps the Review screen with the given [draft] and returns its controller.
 Future<SubmissionController> pumpReview(
@@ -31,11 +52,19 @@ Future<SubmissionController> pumpReview(
   ReportApi? api,
   Locale? locale,
   ThemeMode mode = ThemeMode.light,
+  PendingDraftStore? pendingStore,
+  DateTime Function()? clock,
 }) async {
   final controller = SubmissionController(
     api: api ?? okApi(),
     draft: draft ?? ReportDraft(),
+    pendingStore: pendingStore,
+    clock: clock,
   );
+  // Populate pendingOutcome from the store so the Discard button is visible.
+  if (pendingStore != null) {
+    await controller.readPendingReport();
+  }
   await tester.pumpWidget(
     MaterialApp(
       theme: buildSafeSignalTheme(),
@@ -324,9 +353,236 @@ void main() {
       await reveal(tester, find.text('Submit without contacting anyone'));
       expect(find.text('Submit without contacting anyone'), findsOneWidget);
 
-      // The choice is still in the draft: reviewing again shows it.
+       // The choice is still in the draft: reviewing again shows it.
       await tapButton(tester, 'Review');
       expect(find.text('Submit without contacting anyone'), findsOneWidget);
     });
   });
+
+  // ─── T-17 Discard from review screen ────────────────────────────────────────
+
+  group('T-17 discard from review screen', () {
+    testWidgets('Discard button visible only when a pending report exists',
+        (tester) async {
+      // No pending store: no discard button.
+      tallPhone(tester);
+      await pumpReview(tester, draft: fullDraft());
+      expect(find.text('Discard saved report'), findsNothing);
+
+      // With a valid pending report: discard button is visible.
+      final store = InMemoryPendingDraftStore();
+      await store.write(kPendingRecord);
+      await pumpReview(
+        tester,
+        draft: fullDraft(),
+        pendingStore: store,
+        clock: () => DateTime.utc(2026, 1, 1, 12),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Discard saved report'), findsOneWidget);
+    });
+
+    testWidgets('Discard button is visually subordinate to Submit',
+        (tester) async {
+      tallPhone(tester);
+      final store = InMemoryPendingDraftStore();
+      await store.write(kPendingRecord);
+      await pumpReview(
+        tester,
+        draft: fullDraft(),
+        pendingStore: store,
+        clock: () => DateTime.utc(2026, 1, 1, 12),
+      );
+      await tester.pumpAndSettle();
+
+      // The discard action is a TextButton (subordinate), not a FilledButton.
+      expect(find.widgetWithText(TextButton, 'Discard saved report'),
+          findsOneWidget);
+      expect(find.widgetWithText(FilledButton, 'Submit report'),
+          findsOneWidget);
+    });
+
+    testWidgets('confirming discard removes the record and pops to first route',
+        (tester) async {
+      tallPhone(tester);
+      final store = InMemoryPendingDraftStore();
+      await store.write(kPendingRecord);
+      await pumpReview(
+        tester,
+        draft: fullDraft(),
+        pendingStore: store,
+        clock: () => DateTime.utc(2026, 1, 1, 12),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Discard saved report'), findsOneWidget);
+
+      await tapButton(tester, 'Discard saved report');
+      await tester.pumpAndSettle();
+
+      // Confirmation dialog
+      expect(find.text('Discard saved report?'), findsOneWidget);
+      expect(
+        find.text('This deletes the report saved on this phone. It cannot be undone.'),
+        findsOneWidget,
+      );
+
+      // Confirm
+      await tapButton(tester, 'Discard');
+      await tester.pumpAndSettle();
+
+      // Record is gone.
+      expect(await store.read(), isNull);
+    });
+
+    testWidgets('cancel in confirmation preserves the report', (tester) async {
+      tallPhone(tester);
+      final store = InMemoryPendingDraftStore();
+      await store.write(kPendingRecord);
+      await pumpReview(
+        tester,
+        draft: fullDraft(),
+        pendingStore: store,
+        clock: () => DateTime.utc(2026, 1, 1, 12),
+      );
+      await tester.pumpAndSettle();
+
+      await tapButton(tester, 'Discard saved report');
+      await tester.pumpAndSettle();
+
+      await tapButton(tester, 'Cancel');
+      await tester.pumpAndSettle();
+
+      expect(find.text('Discard saved report?'), findsNothing);
+      expect(await store.read(), isNotNull);
+      // Still on the review screen.
+      expect(find.text('Review your details'), findsOneWidget);
+    });
+
+    testWidgets('failed discard shows an error banner and retains the record',
+        (tester) async {
+      tallPhone(tester);
+
+      // Store whose delete always fails.
+      final store = _ReviewDeleteFailedStore(kPendingRecord);
+      await pumpReview(
+        tester,
+        draft: fullDraft(),
+        pendingStore: store,
+        clock: () => DateTime.utc(2026, 1, 1, 12),
+      );
+      await tester.pumpAndSettle();
+
+      await tapButton(tester, 'Discard saved report');
+      await tester.pumpAndSettle();
+
+      await tapButton(tester, 'Discard');
+      await tester.pumpAndSettle();
+
+      expect(tester.takeException(), isNull);
+
+      expect(
+        find.text('Could not delete the saved report.'),
+        findsOneWidget,
+      );
+      expect(
+        find.text('The report is still saved on this phone.'),
+        findsOneWidget,
+      );
+      expect(await store.read(), isNotNull);
+    });
+
+    testWidgets('discard error banner is a live region', (tester) async {
+      tallPhone(tester);
+      final store = _ReviewDeleteFailedStore(kPendingRecord);
+      await pumpReview(
+        tester,
+        draft: fullDraft(),
+        pendingStore: store,
+        clock: () => DateTime.utc(2026, 1, 1, 12),
+      );
+      await tester.pumpAndSettle();
+
+      await tapButton(tester, 'Discard saved report');
+      await tester.pumpAndSettle();
+      await tapButton(tester, 'Discard');
+      await tester.pumpAndSettle();
+
+      expect(hasLiveRegionNode(tester), isTrue,
+          reason: 'discard-failure banner must be a live region (AR-4.1)');
+    });
+
+    testWidgets('confirmation and error text localised in Kiswahili',
+        (tester) async {
+      phone(tester);
+      tester.platformDispatcher.localesTestValue = [const Locale('sw', 'KE')];
+      addTearDown(tester.platformDispatcher.clearAllTestValues);
+
+      final store = InMemoryPendingDraftStore();
+      await store.write(kPendingRecord);
+      await pumpReview(
+        tester,
+        draft: fullDraft(),
+        pendingStore: store,
+        clock: () => DateTime.utc(2026, 1, 1, 12),
+        locale: const Locale('sw'),
+      );
+      await tester.pumpAndSettle();
+
+      await tapButton(tester, 'Futa ripoti iliyopotekwa');
+      await tester.pumpAndSettle();
+
+      expect(find.text('Futa ripoti iliyopotekwa?'), findsOneWidget);
+
+      await tapButton(tester, 'Futa');
+      await tester.pumpAndSettle();
+
+      expect(await store.read(), isNull);
+    });
+
+    testWidgets('renders without overflow at 2x text scale', (tester) async {
+      phone(tester);
+      tester.platformDispatcher.textScaleFactorTestValue = 2.0;
+      addTearDown(tester.platformDispatcher.clearAllTestValues);
+
+      final store = InMemoryPendingDraftStore();
+      await store.write(kPendingRecord);
+      await pumpReview(
+        tester,
+        draft: fullDraft(),
+        pendingStore: store,
+        clock: () => DateTime.utc(2026, 1, 1, 12),
+      );
+      await tester.pumpAndSettle();
+
+      expect(tester.takeException(), isNull);
+    });
+  });
+}
+
+/// Store used by review-screen discard tests: [delete] always throws
+/// [PendingDraftDeleteFailed] so the error banner path can be exercised.
+class _ReviewDeleteFailedStore implements PendingDraftStore {
+  _ReviewDeleteFailedStore(this.record);
+
+  PendingDraft? record;
+  int deleteCount = 0;
+
+  @override
+  Future<PendingDraft?> read() async => record;
+
+  @override
+  Future<void> delete() async {
+    deleteCount++;
+    throw const PendingDraftDeleteFailed('delete failed');
+  }
+
+  @override
+  Future<void> write(PendingDraft draft) async {
+    record = draft;
+  }
+
+  @override
+  Future<bool> isAvailable() async => true;
 }

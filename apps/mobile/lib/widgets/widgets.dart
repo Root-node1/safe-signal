@@ -7,6 +7,7 @@
 /// ```
 library;
 
+export 'discard_confirmation.dart';
 export 'quick_exit_button.dart';
 export 'safesignal_banner.dart';
 export 'safesignal_tile.dart';

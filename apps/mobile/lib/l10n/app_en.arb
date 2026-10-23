@@ -134,6 +134,13 @@
   "restoreUnavailableIntro": "Could not read your saved report.",
   "restoreDeleteFailedIntro": "Your saved report could not be deleted.",
   "restoreDeleteFailedBody": "The report is still saved on this phone.",
+  "discardAction": "Discard saved report",
+  "discardConfirmTitle": "Discard saved report?",
+  "discardConfirmBody": "This deletes the report saved on this phone. It cannot be undone.",
+  "discardConfirmDelete": "Discard",
+  "discardCancel": "Cancel",
+  "discardFailedTitle": "Could not delete the saved report.",
+  "discardFailedBody": "The report is still saved on this phone.",
   "@restoreSavedAt": {
     "placeholders": {
       "date": {

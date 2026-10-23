@@ -11,9 +11,10 @@ import '../theme.dart';
 import 'report_screen.dart';
 
 import '../widgets/safesignal_banner.dart';
+import '../widgets/discard_confirmation.dart';
 
 /// The user's choice in the restore prompt dialog.
-enum RestoreChoice { restore, keepSaved }
+enum RestoreChoice { restore, keepSaved, discard }
 
 class WelcomeScreen extends StatefulWidget {
   const WelcomeScreen({
@@ -42,6 +43,11 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
   /// re-scheduling the dialog across rebuilds before the first frame callback
   /// fires (AR-2.2).
   bool _hasShownDialog = false;
+
+  /// Whether a manual discard was attempted and failed this session. The
+  /// record is still on the device and an error banner is shown (FR-3.3,
+  /// RR-4.3).
+  bool _discardFailed = false;
 
   @override
   void initState() {
@@ -195,23 +201,33 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
             ),
           ],
         ),
-        actions: [
-          // "Keep saved": dismiss the dialog, preserve the record on the device
-          // (FR-2.4). The record remains in storage for next time.
-          TextButton(
-            onPressed: () =>
-                Navigator.of(dialogContext).pop(RestoreChoice.keepSaved),
-            child: Text(l.keepSaved),
-          ),
-          // "Restore": the affirmative action. autofocus moves keyboard and
-          // screen-reader focus into the dialog (AR-2.2).
-          FilledButton(
-            autofocus: true,
-            onPressed: () =>
-                Navigator.of(dialogContext).pop(RestoreChoice.restore),
-            child: Text(l.restore),
-          ),
-        ],
+         actions: [
+           // "Keep saved": dismiss the dialog, preserve the record on the device
+           // (FR-2.4). The record remains in storage for next time.
+           TextButton(
+             onPressed: () =>
+                 Navigator.of(dialogContext).pop(RestoreChoice.keepSaved),
+             child: Text(l.keepSaved),
+           ),
+           // "Discard": destructive action, visually subordinate to Restore.
+           // Tapping it closes the dialog and opens a confirmation step (T-17).
+           TextButton(
+             style: TextButton.styleFrom(
+               foregroundColor: Theme.of(dialogContext).colorScheme.error,
+             ),
+             onPressed: () =>
+                 Navigator.of(dialogContext).pop(RestoreChoice.discard),
+             child: Text(l.discardConfirmDelete),
+           ),
+           // "Restore": the affirmative action. autofocus moves keyboard and
+           // screen-reader focus into the dialog (AR-2.2).
+           FilledButton(
+             autofocus: true,
+             onPressed: () =>
+                 Navigator.of(dialogContext).pop(RestoreChoice.restore),
+             child: Text(l.restore),
+           ),
+         ],
       ),
     );
 
@@ -220,12 +236,45 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
       // Dismissed by back, tap-outside, or "Keep saved": the record stays on
       // the device (FR-2.4).
       setState(() => _promptDismissed = true);
+     } else if (result == RestoreChoice.discard) {
+      await _discardSavedReport(l);
     } else if (result == RestoreChoice.restore) {
       final route = _reportRoute();
       final restoreOutcome = await widget.controller.restorePending();
       if (!mounted) return;
       if (restoreOutcome is RestoreSucceeded) {
         navigator.push(route);
+      }
+    }
+  }
+
+  /// Confirms and performs a manual discard of the pending report.
+  ///
+  /// The confirmation dialog lets the user back out; canceling it preserves
+  /// the report. On success the prompt is dismissed for this session and the
+  /// welcome screen returns to its normal content. On a failed deletion the
+  /// error is caught, the report is retained, and an error banner is shown
+  /// (FR-3.3, RR-4.3).
+  Future<void> _discardSavedReport(AppLocalizations l) async {
+    final confirmed = await showDiscardConfirmation(context);
+    if (!mounted || !confirmed) return;
+
+    try {
+      await widget.controller.discardPending();
+      if (mounted) {
+        setState(() {
+          _promptDismissed = true;
+          _discardFailed = false;
+        });
+      }
+    } on PendingDraftDeleteFailed {
+      // The record is still on the device; the prompt stays dismissed for this
+      // session, and an error banner is shown (FR-3.3, RR-4.3).
+      if (mounted) {
+        setState(() {
+          _promptDismissed = true;
+          _discardFailed = true;
+        });
       }
     }
   }
@@ -282,12 +331,26 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
             child: ListView(
               padding: const EdgeInsets.all(kSpace6),
               children: [
-                // Status banners (expired, corrupt, unavailable, delete failed).
-                // AR-4.1: announced through a live region.
-                if (statusBanner != null) ...[
-                  statusBanner,
-                  const SizedBox(height: kSpace4),
-                ],
+                 // Status banners (expired, corrupt, unavailable, delete failed).
+                 // AR-4.1: announced through a live region.
+                 if (statusBanner != null) ...[
+                   statusBanner,
+                   const SizedBox(height: kSpace4),
+                 ],
+                 // Discard-failure banner (T-17). Announced as a live region.
+                 // The record is still on the device; the report has not been
+                 // claimed as deleted (FR-3.3, RR-4.3).
+                 if (_discardFailed) ...[
+                   Semantics(
+                     liveRegion: true,
+                     child: SafeSignalBanner(
+                       variant: SafeSignalBannerVariant.error,
+                       title: l.discardFailedTitle,
+                       body: l.discardFailedBody,
+                     ),
+                   ),
+                   const SizedBox(height: kSpace4),
+                 ],
                 // The restore prompt is shown as a modal dialog (see above),
                 // not as an inline card, so it has dialog semantics and focus
                 // management (AR-1.2, AR-2.2).

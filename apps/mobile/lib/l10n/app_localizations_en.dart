@@ -359,4 +359,26 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get restoreDeleteFailedBody =>
       'The report is still saved on this phone.';
+
+  @override
+  String get discardAction => 'Discard saved report';
+
+  @override
+  String get discardConfirmTitle => 'Discard saved report?';
+
+  @override
+  String get discardConfirmBody =>
+      'This deletes the report saved on this phone. It cannot be undone.';
+
+  @override
+  String get discardConfirmDelete => 'Discard';
+
+  @override
+  String get discardCancel => 'Cancel';
+
+  @override
+  String get discardFailedTitle => 'Could not delete the saved report.';
+
+  @override
+  String get discardFailedBody => 'The report is still saved on this phone.';
 }

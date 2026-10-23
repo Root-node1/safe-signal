@@ -103,6 +103,13 @@
   "restoreUnavailableIntro": "Haukuweza kusoma ripoti yako iliyopotekwa.",
   "restoreDeleteFailedIntro": "Ripoti yako iliyopotekwa haifutwa kwa kutokufanikiwa.",
   "restoreDeleteFailedBody": "Ripoti bado imehifadhiwa kwenye simu yako.",
+  "discardAction": "Futa ripoti iliyopotekwa",
+  "discardConfirmTitle": "Futa ripoti iliyopotekwa?",
+  "discardConfirmBody": "Hii inafuta ripoti iliyopotekwa kwenye simu yako. Haifutika tena.",
+  "discardConfirmDelete": "Futa",
+  "discardCancel": "Ghairi",
+  "discardFailedTitle": "Haukuweza kufuta ripoti iliyopotekwa.",
+  "discardFailedBody": "Ripoti bado imehifadhiwa kwenye simu yako.",
   "@restoreSavedAt": {
     "placeholders": {
       "date": {

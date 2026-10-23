@@ -404,13 +404,27 @@ class SubmissionController extends ChangeNotifier {
   /// The record is deleted first. If the deletion fails, the failure is raised
   /// and nothing is cleared, so the report is never reported as discarded when
   /// it is still stored (RR-4.3).
+  ///
+  /// Concurrent calls are ignored so that a double-tap cannot issue a duplicate
+  /// deletion request on the same record.
+  bool _discarding = false;
+
   Future<void> discardPending() async {
-    final store = pendingStore;
-    if (store != null) {
-      await store.delete();
+    if (_discarding) return; // avoid duplicate deletion requests
+    _discarding = true;
+    try {
+      final store = pendingStore;
+      if (store != null) {
+        await store.delete();
+      }
+      _forget();
+      draft.clear();
+      _pendingOutcome = const PendingDraftAbsent();
+      _pendingReadError = null;
+      notifyListeners();
+    } finally {
+      _discarding = false;
     }
-    _forget();
-    draft.clear();
   }
 
   /// Drop an old failure message when the user opens the review screen again.
