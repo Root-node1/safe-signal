@@ -35,11 +35,11 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
 
   const variantStyles: Record<ButtonVariant, string> = {
     primary:
-      'bg-[var(--color-teal)] text-white hover:bg-[var(--color-teal-hover)] active:brightness-95 shadow-sm',
+      'bg-[var(--color-teal)] text-[var(--color-on-teal)] hover:bg-[var(--color-teal-hover)] active:brightness-95 shadow-sm',
     secondary:
       'border-2 border-[var(--color-teal)] bg-transparent text-[var(--color-teal)] hover:bg-[var(--color-teal-subtle)] active:bg-[var(--color-teal-subtle)]',
     urgency:
-      'bg-[var(--color-coral)] text-white hover:bg-[var(--color-coral-hover)] active:brightness-95 shadow-sm',
+      'bg-[var(--color-coral)] text-[var(--color-on-coral)] hover:bg-[var(--color-coral-hover)] active:brightness-95 shadow-sm',
     ghost:
       'bg-transparent text-[var(--color-teal)] hover:bg-[var(--color-teal-subtle)] underline underline-offset-4',
   }

@@ -79,7 +79,7 @@ The key is dropped on success, on reset, and on a 409 key conflict so the next a
 
 ## 4. FastAPI reporting API
 
-**App wiring.** `apps/backend/main.py` builds a FastAPI app whose lifespan calls `db.init()` and `db.close()` (`apps/backend/main.py:10-17`). `db.init()` raises when `SAFESIGNAL_ENV=production` and `DATABASE_URL` is missing, so production can never start on memory storage (`apps/backend/db.py:26-29`).
+**App wiring.** `apps/backend/main.py` builds a FastAPI app whose lifespan calls `db.init()` and `db.close()` (`apps/backend/main.py:12-16`). `db.init()` raises when `SAFESIGNAL_ENV=production` and `DATABASE_URL` is missing, so production can never start on memory storage (`apps/backend/db.py:64-66`).
 
 **Routes.**
 
@@ -89,8 +89,9 @@ The key is dropped on success, on reset, and on a 409 key conflict so the next a
 | GET | `/api/reports` | admin key | `apps/backend/reports.py:61-63` |
 | PATCH | `/api/reports/{id}/status` | admin key | `apps/backend/reports.py:66-75` |
 | POST | `/api/assistant/chat` | public | `apps/backend/assistant.py` |
-| GET | `/health/ready` | public | `apps/backend/main.py:25-29` |
-| POST | `/analyze` | public, stub | `apps/backend/main.py:38-45` |
+| GET | `/health/live` | public | `apps/backend/main.py:66-68` |
+| GET | `/health/ready` | public | `apps/backend/main.py:71-75` |
+| POST | `/analyze` | public, deprecated stub (410) | `apps/backend/main.py:87-92` |
 
 `POST /api/reports` accepts an optional `Idempotency-Key` header, validates it against `^[A-Za-z0-9_-]{16,64}$` (`apps/backend/reports.py:32`, `:43-44`) and returns 201 with the created report. A key reused with a different payload returns 409 with a fixed message that does not echo the payload (`apps/backend/reports.py:55-58`; asserted by `apps/backend/tests/test_idempotency.py:36-41`).
 
@@ -100,9 +101,11 @@ The key is dropped on success, on reset, and on a 409 key conflict so the next a
 
 **Data contract.** `ReportIn` (`apps/backend/schemas.py:22-33`) bounds every free-text field (`route`/`area` ≤ 120, `vehicle` ≤ 20, `sacco` ≤ 80) and restricts incident/timing/support to closed literal sets. `contact_provided` is accepted on input but is not part of `ReportOut` and is not stored (`apps/backend/schemas.py:31`, `:35-48`; `apps/backend/store.py:46-61`). The phone number itself is never transmitted by either client.
 
-**Error handling.** A database failure is mapped to a generic 503 `{"detail": "Service temporarily unavailable"}` by an application exception handler (`apps/backend/main.py:20-22`) and by `db.DatabaseUnavailable` (`apps/backend/db.py:58-71`). Only the exception class name is logged (`apps/backend/db.py:70`). The pool is opened non-blocking so an unreachable database produces 503s rather than a startup crash (`apps/backend/db.py:47`).
+**Error handling.** A database failure is mapped to a generic 503 `{"detail": "Service temporarily unavailable"}` by an application exception handler (`apps/backend/main.py:22-24`) and by `db.DatabaseUnavailable` (`apps/backend/db.py:84-97`). Only the exception class name is logged (`apps/backend/db.py:95`). The pool is opened non-blocking so an unreachable database produces 503s rather than a startup crash (`apps/backend/db.py:72`). Pool configuration (timeout, sslmode, max_lifetime) for Neon is in `_pool_config` (`apps/backend/db.py:31-56`).
 
-**CORS.** Hard-coded to `http://localhost:5173` with methods GET/POST/PATCH and headers `Content-Type`, `X-Admin-Key`, `Idempotency-Key` (`apps/backend/main.py:53-58`). There is no production origin configuration.
+**CORS.** Configured from `SAFESIGNAL_CORS_ORIGINS` (comma-separated); defaults to
+`http://localhost:5173` for development. Methods GET/POST/PATCH, headers
+`Content-Type`, `X-Admin-Key`, `Idempotency-Key` (`apps/backend/main.py:39-44`).
 
 ---
 
@@ -112,13 +115,13 @@ The key is dropped on success, on reset, and on a 409 key conflict so the next a
 
 **Access layer.** `apps/backend/store_pg.py` is the PostgreSQL implementation behind `apps/backend/store.py`; all SQL is parameterised and report content is never logged (`apps/backend/store_pg.py:1`). `store.create` dispatches to it whenever `db.enabled()` (`apps/backend/store.py:75-78`), so the same HTTP contract serves both storage modes.
 
-**Transactions.** `db.connection()` yields a pooled connection inside a transaction that commits on success and rolls back on any exception (`apps/backend/db.py:58-71`). Report insert, key insert and the rate-limit admission all happen in that single transaction (`apps/backend/store_pg.py:52-75`), so a rate-limited request stores nothing.
+**Transactions.** `db.connection()` yields a pooled connection inside a transaction that commits on success and rolls back on any exception (`apps/backend/db.py:84-96`). Report insert, key insert and the rate-limit admission all happen in that single transaction (`apps/backend/store_pg.py:52-75`), so a rate-limited request stores nothing.
 
-**Migrations.** `apps/backend/migrate.py` applies `migrations/*.sql` in order, each in its own transaction, recorded in `schema_migrations`, guarded by a PostgreSQL advisory lock (`apps/backend/migrate.py:22-63`). Migrations never run automatically (`apps/backend/db.py:3-5`; `apps/backend/DATABASE.md:5`). There is no automatic rollback — restore from a backup instead (`apps/backend/DATABASE.md:31-33`).
+**Migrations.** `apps/backend/migrate.py` applies `migrations/*.sql` in order, each in its own transaction, recorded in `schema_migrations`, guarded by a PostgreSQL advisory lock (`apps/backend/migrate.py:22-63`). Migrations never run automatically (`apps/backend/db.py:1-5`; `apps/backend/DATABASE.md:5`). There is no automatic rollback — restore from a backup instead (`apps/backend/DATABASE.md:49-50`).
 
-**Roles and operations.** Least-privilege role separation (`safesignal_owner` / `safesignal_app`) and nightly encrypted `pg_dump` guidance are documented (`apps/backend/DATABASE.md:16-24`, `:36-38`) but are not yet applied to a server.
+**Roles and operations.** Least-privilege role separation (`safesignal_owner` / `safesignal_app`) and nightly encrypted `pg_dump` guidance, plus backup script templates, are documented (`apps/backend/DATABASE.md:29-38`, `:49-50`) but are not yet applied to a server.
 
-**Retention.** Not implemented. `apps/backend/DATABASE.md:49-51` states plainly: *"No automatic deletion of reports or idempotency keys yet; policy pending approval."* Operators can delete a single report by reference code. Because of the `ON DELETE CASCADE` on `idempotency_keys` (`apps/backend/migrations/001_init.sql:26`), deleting a report also erases its idempotency key, so a later retry with that key would create a new report rather than replay.
+**Retention.** Not implemented. `apps/backend/DATABASE.md:62-64` states plainly: *"No automatic deletion of reports or idempotency keys yet; policy pending approval."* Operators can delete a single report by reference code. Because of the `ON DELETE CASCADE` on `idempotency_keys` (`apps/backend/migrations/001_init.sql:26`), deleting a report also erases its idempotency key, so a later retry with that key would create a new report rather than replay.
 
 ---
 

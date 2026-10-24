@@ -28,14 +28,14 @@ Single-page React app with in-memory screen state (no router, nothing persisted 
 
 ## Backend
 
-`main.py` mounts the report router, the assistant router, CORS (origin `http://localhost:5173` only), a readiness route and a generic 503 handler for database failures. Modules: `reports.py` (routes and admin check), `store.py` (selects the store), `store_pg.py` (PostgreSQL), `db.py` (pool), `ratelimit.py`, `assistant.py`, `schemas.py`, `migrate.py`. Routes are synchronous and run in the framework thread pool. See [API.md](API.md).
+`main.py` mounts the report router, the assistant router, configurable CORS (`SAFESIGNAL_CORS_ORIGINS`), security headers middleware, liveness/readiness routes and a generic 503 handler for database failures. Modules: `reports.py` (routes and admin check), `store.py` (selects the store), `store_pg.py` (PostgreSQL), `db.py` (pool with Neon SSL/max_lifetime settings), `ratelimit.py`, `assistant.py`, `schemas.py`, `migrate.py`. Routes are synchronous and run in the framework thread pool. See [API.md](API.md).
 
 ## Storage modes
 
 | | Development | Production |
 |---|---|---|
-| Selection | `DATABASE_URL` unset | `DATABASE_URL` set; `SAFESIGNAL_ENV=production` makes it mandatory |
-| Persistence | None; cleared on restart | PostgreSQL |
+| Selection | `DATABASE_URL` unset | `DATABASE_URL` set; `SAFESIGNAL_ENV=production` makes it mandatory, enforces `sslmode=require` |
+| Persistence | None; cleared on restart | PostgreSQL (Neon in production) |
 | Fallback | n/a | None: a database failure returns 503, never memory |
 | Schema | n/a | Versioned SQL in `apps/backend/migrations`, applied explicitly with `python migrate.py` |
 

@@ -42,7 +42,7 @@ export function SelectionTile({
     unavailable:
       'border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text-muted)]',
     selected:
-      'border-white/40 bg-white/10 text-white',
+      'border-[var(--color-ocean)] bg-[var(--color-ocean)] text-[var(--color-on-teal)]',
   }
 
   return (
@@ -70,7 +70,7 @@ export function SelectionTile({
             aria-hidden="true"
             className={`mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl transition-colors duration-[var(--duration-base)] motion-reduce:transition-none ${
               selected
-                ? 'bg-[var(--color-teal)] text-white'
+                ? 'bg-[var(--color-teal)] text-[var(--color-on-teal)]'
                 : disabled
                   ? 'bg-[var(--color-border-subtle)] text-[var(--color-text-muted)]'
                   : 'bg-[var(--color-teal-subtle)] text-[var(--color-teal)]'
@@ -92,7 +92,7 @@ export function SelectionTile({
             {selected && (
               <span
                 aria-hidden="true"
-                className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[var(--color-teal)] text-white"
+                className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[var(--color-teal)] text-[var(--color-on-teal)]"
               >
                 <svg
                   className="h-3 w-3"

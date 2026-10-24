@@ -25,7 +25,7 @@ export function HelplineCard({ name, detail, tel }: HelplineCardProps) {
       <a
         href={`tel:${tel}`}
         aria-label={`Call ${name} at ${tel}`}
-        className="inline-flex min-h-[44px] min-w-[72px] items-center justify-center rounded-xl bg-[var(--color-teal)] px-4 text-[var(--text-sm)] font-bold text-white shadow-sm transition-colors duration-[var(--duration-base)] motion-reduce:transition-none hover:bg-[var(--color-teal-hover)] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[var(--color-focus)] focus-visible:ring-offset-2"
+        className="inline-flex min-h-[44px] min-w-[72px] items-center justify-center rounded-xl bg-[var(--color-teal)] px-4 text-[var(--text-sm)] font-bold text-[var(--color-on-teal)] shadow-sm transition-colors duration-[var(--duration-base)] motion-reduce:transition-none hover:bg-[var(--color-teal-hover)] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[var(--color-focus)] focus-visible:ring-offset-2"
       >
         {tel}
       </a>

@@ -35,11 +35,11 @@ These are implemented today and verified in the source.
 - The 409 conflict message never echoes the conflicting payload (test `apps/backend/tests/test_idempotency.py:41`).
 
 **Data-handling hygiene**
-- Logs carry error class names and codes only — no report content, keys, addresses or connection strings (`apps/backend/db.py:70`; `apps/backend/store_pg.py:1`; `docs/SECURITY.md:12`).
+- Logs carry error class names and codes only — no report content, keys, addresses or connection strings (`apps/backend/db.py:95`; `apps/backend/store_pg.py:1`; `docs/SECURITY.md:12`).
 - A database failure returns a generic 503 and leaks neither the DSN nor the host (test `apps/backend/tests/test_store_postgres.py:101-107`).
 - The OpenRouter key stays server-side; assistant input is length-bounded and pattern-redacted (emails, Kenyan phone numbers, plates, coordinates, long digit runs); provider errors are returned as a generic code and nothing is stored (`apps/backend/assistant.py`; `docs/SECURITY.md:11`).
 - Secrets are kept in git-ignored `.env` files with placeholder templates (`apps/backend/.env.example`; `docs/SECURITY.md:13`).
-- The database is expected to use a least-privilege role and encrypted off-server backups, with PostgreSQL not exposed on the network (`apps/backend/DATABASE.md:16-25`, `:36-38`).
+- The database is expected to use a least-privilege role and encrypted off-server backups, with PostgreSQL not exposed on the network (`apps/backend/DATABASE.md:29-38`, `:49-50`).
 
 **Honest user-facing copy**
 - The product states plainly that it did not dispatch anyone, that the report was not reviewed or forwarded, and that it is not an emergency service (`apps/frontend/src/screens/ConfirmationScreen.tsx:104-114`; `apps/mobile/lib/screens/confirmation_screen.dart:93-97`).
@@ -145,16 +145,16 @@ On the web, `window.location.replace` clears the current document but leaves bro
 
 ## 6. Retention and deletion gaps
 
-**The policy does not exist.** `apps/backend/DATABASE.md:49-51` is explicit: *"No automatic deletion of reports or idempotency keys yet; policy pending approval."* `docs/CHECKLIST.md:47` repeats it, and `docs/SECURITY.md:17` adds that no retention or deletion policy is implemented.
+**The policy does not exist.** `apps/backend/DATABASE.md:62-64` is explicit: *"No automatic deletion of reports or idempotency keys yet; policy pending approval."* `docs/CHECKLIST.md:47` repeats it, and `docs/SECURITY.md:17` adds that no retention or deletion policy is implemented.
 
 **What is missing, concretely:**
 
 1. **No retention period for reports.** Nothing expires a report. A report about an assault from years ago stays queryable forever.
 2. **No retention period for idempotency keys.** `idempotency_keys` rows carry a `created_at` (`apps/backend/migrations/001_init.sql:27`) that nothing reads. They accumulate at the rate of submissions plus every retry.
 3. **No scheduled job of any kind.** There is no cron, no queue, no worker, no TTL mechanism in the backend. Deletion depends entirely on a human remembering to run SQL.
-4. **Deletion is manual and per-report.** `DELETE FROM reports WHERE code = 'SS-XXXX-XXXX'` (`apps/backend/DATABASE.md:51`) — no bulk or age-based path, and no record that a deletion happened.
+4. **Deletion is manual and per-report.** `DELETE FROM reports WHERE code = 'SS-XXXX-XXXX'` (`apps/backend/DATABASE.md:65`) — no bulk or age-based path, and no record that a deletion happened.
 5. **Deletion cascades silently to the idempotency key.** `ON DELETE CASCADE` (`apps/backend/migrations/001_init.sql:26`) means a deleted report's key disappears with it, so a late retry with that key creates a *new* report rather than resolving to the original. If a reporter retries after their report was deleted, the deletion is undone in effect.
-6. **Backups are ungoverned.** `pg_dump` copies are recommended but the retention of the dumps themselves is not specified (`apps/backend/DATABASE.md:36-38`). A 30-day retention policy on the live database is meaningless if backups are kept indefinitely and unencrypted.
+6. **Backups are ungoverned.** `pg_dump` copies are recommended but the retention of the dumps themselves is not specified (`apps/backend/DATABASE.md:49-50`). A 30-day retention policy on the live database is meaningless if backups are kept indefinitely and unencrypted.
 7. **No data-subject path.** There is no endpoint to look up a report by reference code, so a reporter who wants their report deleted, corrected or withdrawn has no channel, and the operator has no verified way to find the report without the exact code.
 8. **Consent is stored but never captured.** `consent_to_share` is a database column (`apps/backend/migrations/001_init.sql:14`) that is always `false` because both clients hard-code it (`apps/frontend/src/lib/api.ts:34`; `apps/mobile/lib/api/report_api.dart:73`). Any future retention rule that depends on consent would be operating on a meaningless field.
 
@@ -169,7 +169,7 @@ Ranked by the harm that follows if the product collects real reports now, withou
 ### R-01 — Sensitive incident data is kept forever, with no way to erase it
 **Severity: High · Area: Retention / Privacy**
 Reports about assault, harassment and threats accumulate indefinitely in a live table with no expiry, and the only deletion route is an operator remembering a code. There is no schedule, no audit and no reporter-initiated deletion. This is the single most likely way the product causes harm to the people who use it: a record of a violent incident that the reporter believed would eventually disappear outliving the need for it, and remaining readable to anyone who ever obtains the admin key.
-**Evidence:** `apps/backend/DATABASE.md:49-51`; `apps/backend/migrations/001_init.sql:2-29`; `docs/SECURITY.md:17`
+**Evidence:** `apps/backend/DATABASE.md:62-64`; `apps/backend/migrations/001_init.sql:2-29`; `docs/SECURITY.md:17`
 **Mitigation:** Decide and implement a retention policy (period per report status, key expiry, bulk deletion job, deletion-audit trail, backup retention) before the first real report. Start with the shortest defensible period and make it visible in the privacy notice.
 
 ### R-02 — All administrative power rests on one shared, unauditable secret
@@ -180,8 +180,8 @@ A single `X-Admin-Key` value grants unrestricted read of every report and write 
 
 ### R-03 — Reports and the admin key would travel over the network in cleartext
 **Severity: High · Area: Deployment**
-There is no reverse proxy, no TLS, no production CORS origin and no security headers. The deployment is not configured, so today any real deployment would carry route, area, plate and SACCO text — and the admin key — in the clear, and the browser client is configured against `http://localhost:8000` (`apps/frontend/src/lib/api.ts:3-4`).
-**Evidence:** `apps/backend/main.py:53-58`; `apps/backend/ratelimit.py:5-8`; `docs/CHECKLIST.md:112-117`; `docs/SECURITY.md:24`
+There is no reverse proxy and no TLS deployed. CORS is now configurable (`SAFESIGNAL_CORS_ORIGINS`) and security headers (HSTS, X-Content-Type-Options, X-Frame-Options, CSP, Referrer-Policy) are added by middleware, but the deployment layer is still unconfigured. The deployment is not configured, so today any real deployment would carry route, area, plate and SACCO text — and the admin key — in the clear, and the browser client is configured against `http://localhost:8000` (`apps/frontend/src/lib/api.ts:3-4`).
+**Evidence:** `apps/backend/main.py:39-63`; `apps/backend/ratelimit.py:5-8`; `docs/CHECKLIST.md:112-117`; `docs/SECURITY.md:24`
 **Mitigation:** Deploy behind TLS with a reverse proxy that overwrites `X-Forwarded-For` and a Uvicorn configured to trust only that proxy, then a production CORS allowlist and a security-header set. Treat this as a hard gate on collecting real reports.
 
 ### R-04 — A single report row can be re-identified from its own metadata
@@ -207,9 +207,9 @@ The app offers an unmistakable "get me out of here now" affordance, and on Andro
 | Rate limiting is per process: a restart clears every counter, and behind a proxy all clients share one bucket | Medium | `apps/backend/ratelimit.py:1-9`, `:74-75` |
 | No CAPTCHA or abuse control beyond IP rate limiting; an attacker behind rotating addresses can submit freely | Medium | `docs/SECURITY.md:26` |
 | No rate limiting on the assistant or health routes; the assistant limit is also per-process | Medium | `apps/backend/assistant.py` `_throttle` |
-| No security headers and no production CORS allowlist on the API | Medium | `apps/backend/main.py:53-58`; `docs/SECURITY.md:27` |
+| No TLS or reverse proxy deployed; security headers and CORS are configured but the transport is not hardened | Medium | `apps/backend/main.py:47-63` (headers present); `docs/SECURITY.md:27`; `docs/CHECKLIST.md:112-117` |
 | `contactProvided` is accepted and discarded, and `consentToShare` is stored but never captured, so the database's privacy fields carry no information | Low | `apps/backend/schemas.py:31`; `apps/frontend/src/lib/api.ts:34` |
-| The legacy `/analyze` stub returns a hardcoded classification and is not part of the reviewed contract | Low | `apps/backend/main.py:38-45` |
+| The legacy `/analyze` stub returns a hardcoded classification and is not part of the reviewed contract | Low | `apps/backend/main.py:87-92` |
 | No published vulnerability contact, no dependency scanning in CI, no independent security review | Low–Medium | `docs/SECURITY.md:27`, `:30`, `:33` |
 | AI-written Kiswahili copy is unreviewed by a fluent speaker, so safety wording may be mistranslated | Medium | `docs/CHECKLIST.md:79` |
 

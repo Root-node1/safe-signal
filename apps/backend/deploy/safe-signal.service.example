@@ -1,0 +1,37 @@
+# systemd service unit for the SafeSignal backend behind nginx on Contabo.
+#
+# Install:
+#   sudo cp apps/backend/deploy/safe-signal.service /etc/systemd/system/
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now safe-signal
+#
+# The service reads /etc/safesignal/backend.env (a drop-in with the real
+# DATABASE_URL, SAFESIGNAL_ADMIN_KEY, OPENROUTER_API_KEY, SAFESIGNAL_ENV=production
+# and SAFESIGNAL_CORS_ORIGINS). Never put secrets in this unit file.
+#
+# Single worker is required: rate limits are per-process (see ratelimit.py).
+
+[Unit]
+Description=SafeSignal FastAPI backend
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=safesignal
+Group=safesignal
+WorkingDirectory=/opt/safesignal
+EnvironmentFile=/etc/safesignal/backend.env
+ExecStart=/opt/safesignal/venv/bin/uvicorn main:app --host 127.0.0.1 --port 8000 --workers 1
+Restart=always
+RestartSec=5
+
+# Security hardening
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+ReadWritePaths=/opt/safesignal
+
+[Install]
+WantedBy=multi-user.target

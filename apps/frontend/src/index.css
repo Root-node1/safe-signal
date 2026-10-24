@@ -1,6 +1,18 @@
 @import "tailwindcss";
 
+@theme {
+  --font-sans: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', 'Noto Sans', Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
+}
+
 @layer base {
+  /* Default Tailwind sets the ring-offset colour to #fff, which leaves a white halo
+     around focus rings in dark mode. Use the canvas colour so focus indicators stay
+     theme-consistent; explicit utilities (e.g. ring-offset-[var(--color-canvas)])
+     still take precedence per element. */
+  *, ::backdrop {
+    --tw-ring-offset-color: var(--color-canvas);
+  }
+
   :root {
     /* Brand & Accent Core */
     --color-ocean: #102A36;
@@ -33,6 +45,15 @@
     --shadow-sm: 0 1px 2px 0 rgba(16, 42, 54, 0.05);
     --shadow-md: 0 4px 12px -2px rgba(16, 42, 54, 0.08);
     --shadow-lg: 0 10px 25px -3px rgba(16, 42, 54, 0.12);
+
+    /* Text placed on a vibrant brand-accent background (teal/coral). Resolves
+       per theme so accent buttons keep their vibrant colour while their text
+       always meets WCAG 2.2 AA: white on the light accent, the page's darkest
+       neutral (#0B1D26) on the dark-mode vibrant accent. */
+    --color-on-teal:  #FFFFFF;
+    --color-on-coral: #FFFFFF;
+    /* Modal backdrop overlay that dims consistently in both themes. */
+    --color-overlay: rgba(0, 0, 0, 0.5);
 
     /* Glassmorphism Tokens */
     --glass-bg: rgba(245, 247, 246, 0.88);
@@ -117,6 +138,10 @@
     --shadow-md: 0 4px 12px -2px rgba(0, 0, 0, 0.4);
     --shadow-lg: 0 10px 25px -3px rgba(0, 0, 0, 0.6);
 
+    /* Invert accent text colour for dark mode (see :root comment). */
+    --color-on-teal:  #0B1D26;
+    --color-on-coral: #0B1D26;
+
     --glass-bg: rgba(16, 42, 54, 0.85);
     --glass-border: rgba(203, 213, 220, 0.15);
   }
@@ -125,9 +150,7 @@
     margin: 0;
     background-color: var(--color-canvas);
     color: var(--color-text-primary);
-    /* Inter is activated in Task 9 once the font link is added to index.html. */
-    /* font-family: 'Inter', system-ui, …;                                     */
-    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', 'Noto Sans', Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
     -webkit-font-smoothing: antialiased;
     text-rendering: optimizeLegibility;
   }
@@ -139,8 +162,8 @@
     left: 1rem;
     z-index: 100;
     padding: 0.75rem 1.25rem;
-    background: var(--color-ocean-dark);
-    color: #FFFFFF;
+    background: var(--color-teal);
+    color: var(--color-on-teal);
     font-weight: 600;
     border-radius: 0.5rem;
     text-decoration: none;

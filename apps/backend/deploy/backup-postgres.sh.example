@@ -1,0 +1,34 @@
+#!/bin/bash
+# Nightly encrypted backup for Contabo VPS + Neon PostgreSQL.
+#
+# Run from cron (see apps/backend/deploy/cron-backup.example).
+# Requires: pg_dump, age (or gpg) for encryption, rclone (or aws cli) for off-host upload.
+#
+# Environment variables (set in /etc/safesignal/backup.env):
+#   SAFESIGNAL_BACKUP_URL     — the migrate URL for backups (owner role)
+#   SAFESIGNAL_BACKUP_RECIPIENT — age public key (or GPG recipient) for encryption
+#   SAFESIGNAL_BACKUP_DEST    — rclone destination, e.g. s3:backups/safesignal
+set -euo pipefail
+
+URL="${SAFESIGNAL_BACKUP_URL:-${DATABASE_URL:-}}"
+if [ -z "$URL" ]; then
+    echo "SAFESIGNAL_BACKUP_URL or DATABASE_URL must be set" >&2
+    exit 2
+fi
+
+DATE=$(date +%Y-%m-%d)
+FILE="/var/backups/safesignal/safesignal-${DATE}.dump"
+
+mkdir -p "$(dirname "$FILE")"
+chmod 700 "$(dirname "$FILE")"
+
+# Logical backup (encrypted at rest before it ever hits the upload destination)
+pg_dump -Fc "$URL" | age -R "${SAFESIGNAL_BACKUP_RECIPIENT}" -o "${FILE}.age"
+chmod 600 "${FILE}.age"
+
+# Off-host copy
+if [ -n "${SAFESIGNAL_BACKUP_DEST:-}" ]; then
+    rclone copy "${FILE}.age" "${SAFESIGNAL_BACKUP_DEST}"
+fi
+
+echo "Backup complete: ${FILE}.age"

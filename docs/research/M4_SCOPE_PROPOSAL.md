@@ -39,12 +39,12 @@ Ordered by dependency. Each is independently shippable and independently testabl
 
 ### P0-3. Production deployment and transport security
 **Closes:** G-03, G-04, G-16 (partly) · **Risk:** R-03
-- Backend behind a TLS-terminating reverse proxy; a single Uvicorn worker (`apps/backend/DATABASE.md:39-41`).
+- Backend behind a TLS-terminating reverse proxy; a single Uvicorn worker (`apps/backend/DATABASE.md:52-54`).
 - Proxy overwrites `X-Forwarded-For`; Uvicorn trusts only that proxy, so `request.client.host` is the real client (`apps/backend/ratelimit.py:5-8`).
-- Production CORS allowlist replacing the hard-coded `http://localhost:5173` (`apps/backend/main.py:55`).
+- Production CORS allowlist replacing the hard-coded `http://localhost:5173` (`apps/backend/main.py:27-36`).
 - Security response headers: HSTS, `X-Content-Type-Options`, `Referrer-Policy`, a restrictive CSP, `frame-ancestors`.
 - Rate limiting that survives restarts, or an explicit, documented decision to run one worker and accept the limitation.
-- Process supervision, health monitoring against `/health/ready` (`apps/backend/main.py:25-29`), log hygiene and log retention.
+- Process supervision, health monitoring against `/health/ready` (`apps/backend/main.py:66-75`), log hygiene and log retention.
 - Secret management and rotation for `SAFESIGNAL_ADMIN_KEY` and `DATABASE_URL`.
 
 ### P0-4. Storage durability under continuous test
@@ -119,9 +119,9 @@ Ordered by dependency. Each is independently shippable and independently testabl
 | AI translation of user text | Design only | `docs/CHECKLIST.md:82` |
 | Web localisation | Deferred | `docs/CHECKLIST.md:83` |
 | Load testing | Can run in P1/P2 once a server exists; not a design blocker | `docs/CHECKLIST.md:103` |
-| Multi-worker deployment | One worker is a conscious P0 choice; multi-worker needs a persistent limiter and a session store | `apps/backend/DATABASE.md:39-41` |
+| Multi-worker deployment | One worker is a conscious P0 choice; multi-worker needs a persistent limiter and a session store | `apps/backend/DATABASE.md:52-54` |
 | Automatic background submission | See §5 — deliberately not assumed necessary | — |
-| Removal of the legacy `/analyze` stub | Cosmetic cleanup, no risk | `apps/backend/main.py:38-45` |
+| Removal of the legacy `/analyze` stub | Resolved (deprecated, 410 Gone) | `apps/backend/main.py:87-92` |
 
 ---
 

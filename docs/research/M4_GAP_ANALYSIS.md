@@ -41,7 +41,7 @@ Priority areas, in the order requested: **reliability**, **privacy**, **retentio
 | Recovery of an unknown-outcome submission | PARTIAL | A retry with the same key resolves it, but only while the key survives in client memory; after a reload or process kill the outcome cannot be reconciled |
 | Admin list pagination | MISSING | `GET /api/reports` returns every row (`apps/backend/reports.py:61-63`); documented at `docs/CHECKLIST.md:34` |
 | Reference-code lookup for the reporter | MISSING | The confirmation screen states the code *"cannot be looked up yet"* (`apps/frontend/src/screens/ConfirmationScreen.tsx:91`); no such route exists |
-| Legacy `/analyze` stub removed | MISSING | `apps/backend/main.py:38-45`; `docs/CHECKLIST.md:35` |
+| Legacy `/analyze` stub removed | RESOLVED | `apps/backend/main.py:87-92` (deprecated, returns 410 Gone); `docs/CHECKLIST.md:35` |
 
 ### 2.2 Privacy and security
 
@@ -52,7 +52,7 @@ Priority areas, in the order requested: **reliability**, **privacy**, **retentio
 | Per-address admin lockout | IMPLEMENTED | `apps/backend/ratelimit.py:62-67`, `:82-83`; test `apps/backend/tests/test_ratelimit.py:82-97` |
 | Input validation with bounded free-text fields | IMPLEMENTED | `apps/backend/schemas.py:22-33`; mirrored by SQL `CHECK` constraints `apps/backend/migrations/001_init.sql:5-16` |
 | Parameterised SQL | IMPLEMENTED | `apps/backend/store_pg.py:52-65`, `:102-107` |
-| No report content, keys or addresses in logs | IMPLEMENTED | `apps/backend/db.py:70`; `apps/backend/store_pg.py:1`; `docs/SECURITY.md:12` |
+| No report content, keys or addresses in logs | IMPLEMENTED | `apps/backend/db.py:95`; `apps/backend/store_pg.py:1`; `docs/SECURITY.md:12` |
 | Phone number and GPS never transmitted | IMPLEMENTED | `apps/frontend/src/lib/api.ts:18`; `apps/mobile/lib/api/report_api.dart:62-74` |
 | Backend never stores a contact number | IMPLEMENTED | `contact_provided` is accepted but not persisted (`apps/backend/schemas.py:31`, `:35-48`; `apps/backend/store.py:46-61`) |
 | Incident drafts not persisted on the client | IMPLEMENTED | `apps/mobile/lib/models/report_draft.dart:1-3`; `apps/frontend/src/App.tsx:12`; `apps/mobile/pubspec.yaml:30-36` has no storage package |
@@ -63,8 +63,8 @@ Priority areas, in the order requested: **reliability**, **privacy**, **retentio
 | Consent capture screen | MISSING | `consentToShare` is hard-coded `false` on the web (`apps/frontend/src/lib/api.ts:34`) and `false` on mobile (`apps/mobile/lib/api/report_api.dart:73`); the field is stored but unused (`docs/SECURITY.md:17`) |
 | Screenshot / recents-preview suppression | MISSING | No `FLAG_SECURE` and no `android:allowBackup` override anywhere in `apps/mobile` (verified by search) |
 | TLS termination and reverse proxy | MISSING | No proxy configuration in the repository; `docs/SECURITY.md:24`, `docs/CHECKLIST.md:115` |
-| Production CORS origin | MISSING | Hard-coded to `http://localhost:5173` (`apps/backend/main.py:55`) |
-| Security response headers (CSP, HSTS, X-Frame-Options…) | MISSING | No middleware adds them; `docs/SECURITY.md:27` |
+| Production CORS origin | RESOLVED | Configured from `SAFESIGNAL_CORS_ORIGINS` with dev default (`apps/backend/main.py:27-36`); production origin set in deployment env |
+| Security response headers (CSP, HSTS, X-Frame-Options…) | RESOLVED | Middleware adds `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`, `X-XSS-Protection` on all responses; `Strict-Transport-Security` and `Content-Security-Policy` only when `SAFESIGNAL_ENV=production` (`apps/backend/main.py:47-63`) |
 | Dependency and secret scanning in CI | MISSING | CI runs lint, build, ruff and pytest only (`.github/workflows/ci.yml:16-49`); `docs/SECURITY.md:27` |
 | Published vulnerability contact | MISSING | `docs/SECURITY.md:33` states none is established |
 | CAPTCHA or abuse controls beyond rate limiting | MISSING | `docs/SECURITY.md:26` |
@@ -76,13 +76,13 @@ Priority areas, in the order requested: **reliability**, **privacy**, **retentio
 
 | Capability | Status | Evidence |
 |---|---|---|
-| Defined retention policy | MISSING | `apps/backend/DATABASE.md:49-51` — *"policy pending approval"*; `docs/CHECKLIST.md:47` |
+| Defined retention policy | MISSING | `apps/backend/DATABASE.md:62-64` — *"policy pending approval"*; `docs/CHECKLIST.md:47` |
 | Automated deletion of expired reports | MISSING | No scheduled job exists anywhere in the repository |
 | Idempotency-key expiry | MISSING | `idempotency_keys` has `created_at` (`apps/backend/migrations/001_init.sql:27`) but no cleanup path |
-| Manual single-report deletion | IMPLEMENTED | `apps/backend/DATABASE.md:51` — `DELETE FROM reports WHERE code = '...'` |
+| Manual single-report deletion | IMPLEMENTED | `apps/backend/DATABASE.md:65` — `DELETE FROM reports WHERE code = '...'` |
 | Deletion cascades to the idempotency key | IMPLEMENTED (side effect) | `ON DELETE CASCADE` (`apps/backend/migrations/001_init.sql:26`); consequence: a retry with that key afterwards creates a new report |
-| Backup and restore procedure | PARTIAL | Documented (`apps/backend/DATABASE.md:27-38`) but never executed or tested on a server (`docs/CHECKLIST.md:46`) |
-| Least-privilege database roles on a server | PARTIAL | Documented (`apps/backend/DATABASE.md:16-24`), not applied (`docs/CHECKLIST.md:45`) |
+| Backup and restore procedure | PARTIAL | Documented (`apps/backend/DATABASE.md:40-51`) but never executed or tested on a server (`docs/CHECKLIST.md:46`) |
+| Least-privilege database roles on a server | PARTIAL | Documented (`apps/backend/DATABASE.md:29-38`), not applied (`docs/CHECKLIST.md:45`) |
 | Privacy notice for users | MISSING | `docs/CHECKLIST.md:123` |
 | Data-subject access/correction path | MISSING | No endpoint, no process; the reporter holds only a reference code that cannot be looked up |
 
@@ -106,8 +106,8 @@ Priority areas, in the order requested: **reliability**, **privacy**, **retentio
 |---|---|---|
 | PostgreSQL mode selectable and enforced in production | IMPLEMENTED | `apps/backend/db.py:26-29`; test `apps/backend/tests/test_db_config.py:17-25` |
 | Explicit, locked, transactional migrations | IMPLEMENTED | `apps/backend/migrate.py:22-63` |
-| Readiness endpoint | IMPLEMENTED | `apps/backend/main.py:25-29`; `apps/backend/db.py:74-76` |
-| Connection pooling | IMPLEMENTED | `apps/backend/db.py:32-46` (pool size 1–20, default 5) |
+| Readiness endpoint | IMPLEMENTED | `apps/backend/main.py:66-75` (`health/live` and `health/ready`); `apps/backend/db.py:99-101` (`ping`) |
+| Connection pooling | IMPLEMENTED | Pool config in `apps/backend/db.py:31-56`; pool opened `apps/backend/db.py:69-73` (size 1-20, default 5; SSL+max_lifetime in production) |
 | CI runs on every push | IMPLEMENTED | `.github/workflows/ci.yml` |
 | PostgreSQL service container in CI | MISSING | `.github/workflows/ci.yml` has no database service; the PostgreSQL suite self-skips (`apps/backend/tests/test_store_postgres.py:13-17`); `docs/CHECKLIST.md:43` |
 | Flutter analyze/test in CI | MISSING | `.github/workflows/ci.yml:16-49`; `docs/CHECKLIST.md:107` |
@@ -144,9 +144,9 @@ Ordered by risk if the product collects real reports, then by effort.
 
 | ID | Gap | Area | Evidence |
 |---|---|---|---|
-| G-01 | **No retention policy and no automated deletion.** Reports accumulate indefinitely, with no expiry of reports or idempotency keys. | Retention | `apps/backend/DATABASE.md:49-51` |
+| G-01 | **No retention policy and no automated deletion.** Reports accumulate indefinitely, with no expiry of reports or idempotency keys. | Retention | `apps/backend/DATABASE.md:62-64` |
 | G-02 | **No admin identity and no audit trail.** One shared secret grants full read of every report and the power to change any status; nothing records who did what. | Privacy | `apps/backend/reports.py:14-29` |
-| G-03 | **No deployment.** No TLS, no reverse proxy, no hardened server, no production CORS, no security headers. Reports would travel in cleartext over public networks. | Deployment | `apps/backend/main.py:53-58`; `docs/CHECKLIST.md:112-117` |
+| G-03 | **No production deployment.** No TLS, no reverse proxy, no hardened server. CORS is configurable (`SAFESIGNAL_CORS_ORIGINS`) and security headers middleware is in place, but no reverse proxy or TLS is deployed. Reports would travel in cleartext over public networks. | Deployment | `apps/backend/main.py:39-63`; `docs/CHECKLIST.md:112-117`; `apps/backend/deploy/nginx.conf.example` |
 | G-04 | **Rate limiting is per-process and ephemeral.** A restart clears all counters; behind a proxy all clients can share one bucket, which either throttles everyone or nobody. | Reliability / Deployment | `apps/backend/ratelimit.py:1-9`, `:42-67` |
 | G-05 | **Client submission keys are volatile.** A reload (web) or process kill (mobile) loses the key, so an unknown-outcome submission cannot be reconciled and a duplicate can be created. | Reliability | `apps/frontend/src/App.tsx:37`; `apps/mobile/lib/api/submission_controller.dart:65-66` |
 | G-06 | **PostgreSQL path is not exercised in CI.** The suite self-skips without a `TEST_DATABASE_URL`, so the production storage path can regress unnoticed. | Reliability | `apps/backend/tests/test_store_postgres.py:13-17`; `.github/workflows/ci.yml` |
@@ -158,7 +158,7 @@ Ordered by risk if the product collects real reports, then by effort.
 |---|---|---|---|
 | G-08 | **No durable offline recovery.** A user who loses connectivity mid-report, or whose app is killed, loses the draft entirely. | Offline | `apps/mobile/lib/app.dart:22-23`; `apps/frontend/src/App.tsx:12` |
 | G-09 | **Screenshot and recents-preview exposure on Android.** No `FLAG_SECURE`; the recent-apps thumbnail can show the incident text the user just typed. | Privacy | `apps/mobile/lib/widgets/quick_exit_button.dart:9-10`; search of `apps/mobile` finds no `FLAG_SECURE` |
-| G-10 | **No backup/restore verification and no least-privilege roles on a server.** The documented procedure has never been run. | Retention / Deployment | `apps/backend/DATABASE.md:16-24`, `:36-38`; `docs/CHECKLIST.md:45-46` |
+| G-10 | **No backup/restore verification and no least-privilege roles on a server.** The documented procedure has never been run. | Retention / Deployment | `apps/backend/DATABASE.md:29-38`, `:49-50`; `docs/CHECKLIST.md:45-46` |
 | G-11 | **No admin UI behind real authentication.** The only dashboard is mock data behind a cosmetic flag. | Privacy | `apps/frontend/src/screens/AdminScreen.tsx:23-37`; `apps/frontend/src/lib/prototype.ts:1-6` |
 | G-12 | **No frontend automated tests and no end-to-end journey test.** The web path is the least-verified surface in the product. | Reliability | `apps/frontend/package.json:6-11`; `docs/CHECKLIST.md:21`, `:102` |
 | G-13 | **No Flutter CI job.** `flutter analyze` and `flutter test` never run automatically. | Reliability | `.github/workflows/ci.yml`; `docs/CHECKLIST.md:107` |
@@ -173,14 +173,14 @@ Ordered by risk if the product collects real reports, then by effort.
 | G-17 | CAPTCHA or abuse controls beyond IP rate limiting | Privacy | `docs/SECURITY.md:26` |
 | G-18 | Rate limiting on non-report routes (assistant, health) | Reliability | `docs/SECURITY.md:26` |
 | G-19 | Reference-code lookup so a reporter can check their report | Functional | `apps/frontend/src/screens/ConfirmationScreen.tsx:91` |
-| G-20 | Remove the legacy `/analyze` stub | Reliability | `apps/backend/main.py:38-45` |
+| G-20 | Remove the legacy `/analyze` stub | Resolved | `apps/backend/main.py:87-92` (returns 410 Gone) |
 | G-21 | Load testing of report and assistant endpoints | Deployment | `docs/CHECKLIST.md:103` |
 | G-22 | Release APK signing, versioning, signed release build | Deployment | `docs/CHECKLIST.md:94-95` |
 | G-23 | Flutter assistant screen | Functional | `docs/CHECKLIST.md:93-94` |
 | G-24 | Trusted-contact alerting and partner check-in | Functional | `apps/frontend/src/screens/NextStepScreen.tsx:33-45` |
 | G-25 | Independent review of the Kiswahili copy | Privacy (trust) | `docs/CHECKLIST.md:79` |
 | G-26 | Data-subject access and correction path | Privacy | no endpoint exists |
-| G-27 | Distributed limiter when moving beyond a single worker | Deployment | `apps/backend/DATABASE.md:39-41` |
+| G-27 | Distributed limiter when moving beyond a single worker | Deployment | `apps/backend/DATABASE.md:52-54` |
 | G-28 | Remember the user's language choice | Functional | `docs/CHECKLIST.md:81` |
 
 ---
