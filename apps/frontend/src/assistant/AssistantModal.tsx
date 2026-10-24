@@ -185,7 +185,7 @@ export function AssistantModal({ isOpen, onClose, returnFocusId }: Props) {
       role="dialog"
       aria-modal="true"
       aria-labelledby="assistant-title"
-      className="fixed inset-0 z-40 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-[var(--color-ocean-dark)]/50 backdrop-blur-xs transition-opacity motion-reduce:transition-none"
+      className="fixed inset-0 z-40 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-[var(--color-overlay)] backdrop-blur-xs transition-opacity motion-reduce:transition-none"
     >
       <div
         ref={dialogRef}
@@ -196,7 +196,7 @@ export function AssistantModal({ isOpen, onClose, returnFocusId }: Props) {
           <div className="flex min-w-0 items-center gap-2.5">
             <span
               aria-hidden="true"
-              className="flex h-7 w-7 items-center justify-center rounded-xl bg-[var(--color-teal)] text-white text-[13px] font-bold"
+              className="flex h-7 w-7 items-center justify-center rounded-xl bg-[var(--color-teal)] text-[var(--color-on-teal)] text-[13px] font-bold"
             >
               AI
             </span>
@@ -223,7 +223,7 @@ export function AssistantModal({ isOpen, onClose, returnFocusId }: Props) {
               type="button"
               onClick={quickExit}
               aria-label="Quick exit to a neutral search page (Shortcut: Escape)"
-              className="min-h-[44px] min-w-[44px] rounded-full bg-[var(--color-ocean-dark)] px-3.5 text-[14px] font-semibold text-white focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[var(--color-focus)]"
+              className="min-h-[44px] min-w-[44px] rounded-full bg-[var(--color-teal)] px-3.5 text-[14px] font-semibold text-[var(--color-on-teal)] hover:bg-[var(--color-teal-hover)] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[var(--color-focus)]"
             >
               Exit
             </button>
@@ -256,7 +256,7 @@ export function AssistantModal({ isOpen, onClose, returnFocusId }: Props) {
               <div
                 className={`rounded-2xl px-4 py-3 text-[14px] leading-5 ${
                   m.role === 'user'
-                    ? 'bg-[var(--color-teal)] text-white'
+                    ? 'bg-[var(--color-teal)] text-[var(--color-on-teal)]'
                     : m.isEmergencyNotice
                     ? 'bg-[var(--color-coral-subtle)] border-2 border-[var(--color-coral)] text-[var(--color-ocean-dark)]'
                     : 'bg-[var(--color-surface)] border border-[var(--color-border-subtle)] text-[var(--color-text-primary)] shadow-xs'
@@ -293,7 +293,7 @@ export function AssistantModal({ isOpen, onClose, returnFocusId }: Props) {
                 key={item.id}
                 type="button"
                 onClick={() => handleSelectGuidance(item)}
-                className="min-h-[44px] rounded-full border border-[var(--color-teal)]/30 bg-[var(--color-teal-subtle)] px-3.5 py-2 text-[13px] font-semibold text-[var(--color-teal)] hover:bg-[var(--color-teal)] hover:text-white transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-focus)] motion-reduce:transition-none"
+                className="min-h-[44px] rounded-full border border-[var(--color-teal)]/30 bg-[var(--color-teal-subtle)] px-3.5 py-2 text-[13px] font-semibold text-[var(--color-teal)] hover:bg-[var(--color-teal)] hover:text-[var(--color-on-teal)] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-focus)] motion-reduce:transition-none"
               >
                 {item.shortLabel}
               </button>
@@ -321,7 +321,7 @@ export function AssistantModal({ isOpen, onClose, returnFocusId }: Props) {
           <button
             type="submit"
             disabled={!customInput.trim() || loading}
-            className="min-h-[44px] px-4 rounded-xl bg-[var(--color-teal)] text-white text-[14px] font-bold disabled:opacity-50 transition-colors hover:bg-[var(--color-teal-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-focus)]"
+            className="min-h-[44px] px-4 rounded-xl bg-[var(--color-teal)] text-[var(--color-on-teal)] text-[14px] font-bold disabled:opacity-50 transition-colors hover:bg-[var(--color-teal-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-focus)]"
           >
             Send
           </button>

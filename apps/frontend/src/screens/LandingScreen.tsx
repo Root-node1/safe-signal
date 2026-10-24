@@ -245,7 +245,7 @@ export default function LandingScreen({ onStart }: Props) {
           <div className="flex items-start gap-3">
             <div
               aria-hidden="true"
-              className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[var(--color-ocean)] text-white text-[var(--text-xs)] font-bold"
+              className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[var(--color-teal)] text-[var(--color-on-teal)] text-[var(--text-xs)] font-bold"
             >
               🛡
             </div>
