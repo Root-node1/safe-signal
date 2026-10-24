@@ -212,6 +212,37 @@ void main() {
       expect(find.text('Exit'), findsOneWidget);
     });
 
+    testWidgets('shows the screenshot note explaining screenshots are blocked',
+        (tester) async {
+      tallPhone(tester);
+      await pumpConfirmation(tester, await confirmedController());
+
+      expect(
+        find.text(
+          'Screenshots and screen recordings are blocked on this screen for '
+          'your privacy. Use Copy code to keep your reference code.',
+        ),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('screenshot note is shown in Kiswahili', (tester) async {
+      tallPhone(tester);
+      await pumpConfirmation(
+        tester,
+        await confirmedController(),
+        locale: const Locale('sw'),
+      );
+
+      expect(
+        find.text(
+          'Picha za skrini na viideo vya skrini hufutwa kwenye skrini hii kwa '
+          'faragha yako. Tumia Nakili namba ili kuhifadhi namba yako ya kumbukumbu.',
+        ),
+        findsOneWidget,
+      );
+    });
+
     testWidgets('shows every string in Kiswahili', (tester) async {
       tallPhone(tester);
       await pumpConfirmation(

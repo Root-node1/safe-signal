@@ -101,6 +101,8 @@ class ConfirmationScreen extends StatelessWidget {
                               ),
                               const SizedBox(height: kSpace2),
                               Text(l.codeNote, style: text.bodyMedium),
+                              const SizedBox(height: kSpace2),
+                              Text(l.screenshotNote, style: text.bodyMedium),
                             ],
                           ),
                         ),
