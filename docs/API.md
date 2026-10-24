@@ -7,12 +7,13 @@ Base URL in development: `http://localhost:8000`. JSON uses camelCase. Interacti
 | Method and path | Auth | Purpose |
 |---|---|---|
 | `GET /` | none | Returns `{"message": "SafeSignal API running"}` |
+| `GET /health/live` | none | 200 liveness probe (`{"status":"ok"}`) |
 | `GET /health/ready` | none | 200 with `{"status":"ok","storage":"memory"\|"postgres"}`; 503 if the database is unreachable |
 | `POST /api/reports` | none | Create a report |
 | `GET /api/reports` | admin key | List all reports, newest first |
 | `PATCH /api/reports/{id}/status` | admin key | Update a report status |
 | `POST /api/assistant/chat` | none | Ask the guidance assistant |
-| `POST /analyze` | none | Legacy stub returning a fixed response; not real analysis |
+| `POST /analyze` | none | Deprecated stub; returns 410 Gone directing clients to the assistant chat |
 
 ## POST /api/reports
 
@@ -54,7 +55,9 @@ Response 200: `{"reply": string, "source": "ai"|"emergency", "disclaimer": strin
 Errors: 422 validation; 429 `{"detail":"rate_limited"}` after 10 requests per minute per client address (no `Retry-After` header); 503 `{"detail":"assistant_unavailable"}` for any provider problem (missing key, authentication, credits, model unavailable, rate limit, timeout, malformed response). Input is redacted before sending; messages are not stored or logged.
 
 ## Limitations
-- CORS allows only `http://localhost:5173` for GET, POST, PATCH.
+- CORS origins are configured via `SAFESIGNAL_CORS_ORIGINS` (comma-separated); default `http://localhost:5173` in development. Methods GET, POST, PATCH; headers `Content-Type`, `X-Admin-Key`, `Idempotency-Key`.
+- Security headers (`X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`, `X-XSS-Protection`) are on all responses; `Strict-Transport-Security` and `Content-Security-Policy` only when `SAFESIGNAL_ENV=production`. TLS termination is the reverse proxy's job.
+- `GET /health/live` (liveness) and `GET /health/ready` (readiness, pings the DB) are available.
 - No pagination or filtering on the admin list.
 - Admin authentication is one shared static key; there are no users or audit logs.
 - Rate limits and, in memory mode, idempotency keys are per process and reset on restart.

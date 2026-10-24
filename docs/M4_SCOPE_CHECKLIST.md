@@ -71,7 +71,7 @@ No route resolves a reference code; a code is written to the reporter and is nev
 | Unauthenticated listing returns 401 | `apps/backend/reports.py:28` |
 | No code lookup route | `apps/backend/reports.py:11` (route table has no `{code}` parameter) |
 | Reference code is generated, never accepted | `apps/backend/store.py:30`, `apps/backend/store.py:32` |
-| Documented behaviour matches | `docs/API.md:11`, `docs/API.md:12`, `docs/API.md:13` |
+| Documented behaviour matches | `docs/API.md:12`, `docs/API.md:13`, `docs/API.md:14` |
 
 ### XR-2 — The `/analyze` stub is not wired into any client
 
@@ -90,8 +90,8 @@ checklist. It is not a client of the reports store, so it cannot expose report c
 
 | Fact | Evidence |
 |---|---|
-| Stub route and its fixed response | `apps/backend/main.py:38`, `apps/backend/main.py:41` |
-| Documented as a legacy stub | `docs/API.md:15` |
+| Stub route and its fixed response | `apps/backend/main.py:87`, `apps/backend/main.py:89` |
+| Documented as a legacy stub | `docs/API.md:16` |
 | Tracked for removal | `docs/CHECKLIST.md:35` |
 | No client call | no match in `apps/frontend/src` or `apps/mobile/lib` |
 
@@ -350,7 +350,7 @@ the legacy stub. The assistant module does not import the store at all, so it ca
 
 | Fact | Evidence |
 |---|---|
-| Route table | `apps/backend/main.py:59`, `apps/backend/main.py:60` |
+| Route table | `apps/backend/main.py:99`, `apps/backend/main.py:100` |
 | Admin gate on the list | `apps/backend/reports.py:61` |
 | Admin gate on the status update | `apps/backend/reports.py:66` |
 | The assistant never touches the store | `apps/backend/assistant.py:1` (module imports) |
@@ -383,8 +383,8 @@ as still to do.
 |---|---|---|---|
 | **SR-1.2** No new admin endpoint exposes report content to a non-admin client | Route enumeration, admin-gate assertion, assistant/store separation | HOLDS | `apps/backend/reports.py:61`, `apps/backend/reports.py:66`, `apps/backend/assistant.py:1` |
 | **SR-2.2** The prototype admin screen keeps using mock data only | Read the screen and the mock module; searched for network calls | HOLDS | `apps/frontend/src/screens/AdminScreen.tsx:3`, `apps/frontend/src/admin/mockReports.ts:3` |
-| **SR-10.1** Idempotency key format | Compared the accepted pattern with the documented one | HOLDS | `apps/backend/reports.py:32`, `apps/backend/migrations/001_init.sql:24`, `docs/API.md:19` |
-| **SR-10.2** The same key with a different payload is rejected with 409 | Read the conflict path in both stores and the HTTP mapping | HOLDS | `apps/backend/store.py:82`, `apps/backend/store_pg.py:43`, `apps/backend/reports.py:55`, `docs/API.md:36` |
+| **SR-10.1** Idempotency key format | Compared the accepted pattern with the documented one | HOLDS | `apps/backend/reports.py:32`, `apps/backend/migrations/001_init.sql:24`, `docs/API.md:20` |
+| **SR-10.2** The same key with a different payload is rejected with 409 | Read the conflict path in both stores and the HTTP mapping | HOLDS | `apps/backend/store.py:82`, `apps/backend/store_pg.py:43`, `apps/backend/reports.py:55`, `docs/API.md:37` |
 | **PR-1.1** No account is required to submit a report | Route dependency inspection; client payload builders | HOLDS | `apps/backend/reports.py:35`, `apps/frontend/src/lib/api.ts:19`, `apps/mobile/lib/api/report_api.dart:64` |
 | **PR-1.2** The phone number is never accepted or stored | Searched the server schema, the response model and the table for phone, e-mail, name and ID fields | HOLDS | `apps/backend/schemas.py:22`, `apps/backend/schemas.py:35`, `apps/backend/migrations/001_init.sql:2` |
 | **PR-3.1** No consent screen is added in either client | Searched the user-facing screens of both clients for a consent control | HOLDS | `apps/frontend/src/lib/api.ts:34`, `apps/mobile/lib/api/report_api.dart:73` |
@@ -395,11 +395,11 @@ as still to do.
 | **PR-5.1** No public endpoint lists reports | Route enumeration | HOLDS | `apps/backend/reports.py:61` |
 | **PR-5.2** No real report data is committed to the repository | Read every sample payload in the repository | HOLDS | `apps/frontend/src/admin/mockReports.ts:7`, `apps/backend/tests/test_reports.py:18` |
 | **PR-6.1** No analytics, advertising or tracking library | Compared both dependency sets with the approved lists | HOLDS | `apps/frontend/package.json:12`, `apps/mobile/pubspec.yaml:30` |
-| **PR-6.2** No report content in logs | Read every logging and console-output statement in the backend; searched both clients for console output | HOLDS | `apps/backend/assistant.py:154`, `apps/backend/db.py:70`, `apps/backend/migrate.py:84` |
+| **PR-6.2** No report content in logs | Read every logging and console-output statement in the backend; searched both clients for console output | HOLDS | `apps/backend/assistant.py:154`, `apps/backend/db.py:95`, `apps/backend/migrate.py:84` |
 | **PR-10.1** The reference code is copied out of the app | Read the confirmation screen | HOLDS | `apps/mobile/lib/screens/confirmation_screen.dart:84` |
 | **PR-10.2** The clipboard is never read or cleared by the app | Searched the Android app for clipboard reads and clears | HOLDS | `apps/mobile/lib/screens/confirmation_screen.dart:84` (write only) |
 | **PR-11.2** No metadata field is added to `reports` | Parsed the table definition | HOLDS | `apps/backend/migrations/001_init.sql:2` |
-| **RR-5.2** No routine deletion of idempotency keys is added | Searched the backend for delete statements, schedulers and periodic jobs | HOLDS | `apps/backend/migrations/001_init.sql:23` (no expiry column), `apps/backend/DATABASE.md:50` |
+| **RR-5.2** No routine deletion of idempotency keys is added | Searched the backend for delete statements, schedulers and periodic jobs | HOLDS | `apps/backend/migrations/001_init.sql:23` (no expiry column), `apps/backend/DATABASE.md:63` |
 
 **NOTE on PR-3.2.** The *clients* satisfy PR-3.2: both hard-code the flag to `false`. The *server*
 does not force it to `false` — it stores whatever a client sends
@@ -428,25 +428,25 @@ Each claim below was read in the document and then checked in the implementation
 | 8 | The timestamp is millisecond precision | `apps/backend/store.py:42`, `apps/backend/store_pg.py:13` | **HOLDS** |
 | 9 | The assistant sends the message and up to six earlier turns, redacted, and stores nothing | `apps/backend/assistant.py:23`, `apps/backend/assistant.py:76`, `apps/backend/assistant.py:148`, `apps/backend/assistant.py:54` | **HOLDS** |
 | 10 | The assistant does not promise anonymity or confidentiality | The server prompt forbids it (`apps/backend/assistant.py:36`) — but the same prompt describes the product as "anonymous-by-design" (`apps/backend/assistant.py:32`) | **EXCEPTION — C-2** |
-| 11 | A deleted report is removed from the live database but may remain in an older backup | `apps/backend/migrations/001_init.sql:26` (cascade) and `apps/backend/DATABASE.md:36` (backups) | **HOLDS** |
+| 11 | A deleted report is removed from the live database but may remain in an older backup | `apps/backend/migrations/001_init.sql:26` (cascade) and `apps/backend/DATABASE.md:49` (backups) | **HOLDS** |
 | 12 | The retention period is a marked placeholder | `docs/PRIVACY.md:267` | **HOLDS** |
 | 13 | Deleting by reference code also removes the idempotency key | `apps/backend/migrations/001_init.sql:26` (`ON DELETE CASCADE`) | **HOLDS** |
 | 14 | The admin can list reports and update a status; no public lookup | `apps/backend/reports.py:61`, `apps/backend/reports.py:66` | **HOLDS** |
-| 15 | No report content, key, phone number or address is written to a log | `apps/backend/assistant.py:154`, `apps/backend/db.py:70` — the only two log calls, both a code or a class name; the only other output is the migration CLI's own error message (`apps/backend/migrate.py:84`) | **HOLDS** |
+| 15 | No report content, key, phone number or address is written to a log | `apps/backend/assistant.py:154`, `apps/backend/db.py:95` — the only two log calls, both a code or a class name; the only other output is the migration CLI's own error message (`apps/backend/migrate.py:84`) | **HOLDS** |
 
 ### 4.2 `docs/RETENTION.md` (T-02)
 
 | # | Claim in the record | Checked against | Result |
 |---|---|---|---|
-| 1 | No automatic deletion of reports or idempotency keys exists | `apps/backend/DATABASE.md:50`; no delete statement, scheduler or expiry column in the backend | **HOLDS** |
+| 1 | No automatic deletion of reports or idempotency keys exists | `apps/backend/DATABASE.md:63`; no delete statement, scheduler or expiry column in the backend | **HOLDS** |
 | 2 | The key of a report is removed when the report is deleted | `apps/backend/migrations/001_init.sql:26` | **HOLDS** |
 | 3 | A replayed submission does not consume rate-limit allowance | `apps/backend/store.py:85`, `apps/backend/store_pg.py:50` | **HOLDS** |
 | 4 | The same key with a different payload is rejected | `apps/backend/store.py:82`, `apps/backend/store_pg.py:43` | **HOLDS** |
 | 5 | The same key with a different payload is rejected with 409 | `apps/backend/reports.py:55` | **HOLDS** |
 | 6 | Both clients hard-code consent to false | `apps/frontend/src/lib/api.ts:34`, `apps/mobile/lib/api/report_api.dart:73` | **HOLDS** |
 | 7 | The `status` values include `Closed` | `apps/backend/migrations/001_init.sql:16` | **HOLDS** |
-| 8 | The server never falls back to in-memory storage in production | `apps/backend/db.py:26` | **HOLDS** |
-| 9 | The citations in § 5.1 and § 8 point at the lines they claim | The record cites `apps/backend/DATABASE.md:51`, `docs/PRIVACY.md:291-293` and `docs/PRIVACY.md:296-297`; the text it means is at `apps/backend/DATABASE.md:52`, `docs/PRIVACY.md:296` and `docs/PRIVACY.md:299` | **EXCEPTION — C-7** (three of the citations are one to five lines off; the claims themselves are correct) |
+| 8 | The server never falls back to in-memory storage in production | `apps/backend/db.py:65` | **HOLDS** |
+| 9 | The citations in § 5.1 and § 8 point at the lines they claim | The record cites `apps/backend/DATABASE.md:64`, `docs/PRIVACY.md:291-293` and `docs/PRIVACY.md:296-297`; the text it means is at `apps/backend/DATABASE.md:65`, `docs/PRIVACY.md:296` and `docs/PRIVACY.md:299` | **EXCEPTION — C-7** (three of the citations are one to five lines off; the claims themselves are correct) |
 
 ### 4.3 `docs/SECURITY.md` and `docs/API.md`
 
@@ -455,10 +455,10 @@ Each claim below was read in the document and then checked in the implementation
 | `docs/SECURITY.md:7` | The admin key is compared in constant time and fails closed | `apps/backend/reports.py:27` | **HOLDS** |
 | `docs/SECURITY.md:20` | In-memory mode loses everything on restart | `apps/backend/store.py:15` | **HOLDS** |
 | `docs/SECURITY.md:17` | "No retention or deletion policy is implemented" | A decision record now exists (`docs/RETENTION.md`) and M.4 builds the tool (T-24), still fail-closed | **EXCEPTION — C-4** (imprecise, not wrong about behaviour) |
-| `docs/API.md:15` | `/analyze` is a legacy stub | `apps/backend/main.py:38` | **HOLDS** |
-| `docs/API.md:26` | `timing` affects urgency and is not stored | No `timing` column in `apps/backend/migrations/001_init.sql:2` | **HOLDS** |
-| `docs/API.md:32` | `consentToShare` is stored, default false | `apps/backend/store_pg.py:52` | **HOLDS** |
-| `docs/API.md:59` | One shared static admin key, no users and no audit logs | `apps/backend/reports.py:17` | **HOLDS** |
+| `docs/API.md:16` | `/analyze` is a legacy stub (now returns 410 Gone) | `apps/backend/main.py:87` | **HOLDS** |
+| `docs/API.md:27` | `timing` affects urgency and is not stored | No `timing` column in `apps/backend/migrations/001_init.sql:2` | **HOLDS** |
+| `docs/API.md:33` | `consentToShare` is stored, default false | `apps/backend/store_pg.py:52` | **HOLDS** |
+| `docs/API.md:64` | One shared static admin key, no users and no audit logs | `apps/backend/reports.py:17` | **HOLDS** |
 
 ---
 
@@ -512,7 +512,7 @@ and the script in § 7.
 | **C-4** | `docs/SECURITY.md` says "No retention or deletion policy is implemented" and does not mention the retention decision record or the new M.4 documents. | `docs/SECURITY.md:17` | The statement is still true about behaviour (nothing deletes anything), but a reader of SECURITY.md will not find `docs/PRIVACY.md` or `docs/RETENTION.md`. | **T-22** (record the manifest state in SECURITY.md) and **T-33** (the final pass over `docs/SECURITY.md`). |
 | **C-5** | The development checklist still lists "Privacy notice for users" as not done. | `docs/CHECKLIST.md:124` | T-01 delivered `docs/PRIVACY.md`; the checklist is stale. | **T-33** (owns `docs/CHECKLIST.md`). |
 | **C-6** | The development checklist states test-suite sizes that are now wrong. | `docs/CHECKLIST.md:31` (backend: "56 pass without database" — the suite is now 86 passed, 1 skipped, 1 expected failure with T-04's checks added) and `docs/CHECKLIST.md:70` (Flutter: "2 pass" — the suite is now 159 tests with 1 opt-in skip; `docs/CHECKLIST.md:100` also says 47) | The counts are the evidence column of the checklist, so a wrong count is a wrong claim about what has been verified. | **T-33** (owns `docs/CHECKLIST.md`). |
-| **C-7** | Three distinct citations in the retention record (four occurrences) point one to five lines away from the text they claim. The claims themselves are correct. | `docs/RETENTION.md` § 5.1 and § 8 (citing `apps/backend/DATABASE.md:51` and `docs/PRIVACY.md:291-293`, `docs/PRIVACY.md:296-297`; the referenced text is at `apps/backend/DATABASE.md:52`, `docs/PRIVACY.md:296` and `docs/PRIVACY.md:299`) | A citation that points at the wrong line is a broken audit trail in a document whose purpose is to be auditable. | **T-02 (retention record) revision.** The script in § 7 now checks these citations automatically and names exactly the three that are wrong, and it fails until they are corrected. |
+| **C-7** | Three distinct citations in the retention record (four occurrences) point one to five lines away from the text they claim. The claims themselves are correct. | `docs/RETENTION.md` § 5.1 and § 8 (citing `apps/backend/DATABASE.md:64` and `docs/PRIVACY.md:291-293`, `docs/PRIVACY.md:296-297`; the referenced text is at `apps/backend/DATABASE.md:65`, `docs/PRIVACY.md:296` and `docs/PRIVACY.md:299`) | A citation that points at the wrong line is a broken audit trail in a document whose purpose is to be auditable. | **T-02 (retention record) revision.** The script in § 7 now checks these citations automatically and names exactly the three that are wrong, and it fails until they are corrected. |
 | **C-8** | The prototype admin screen shows a *share consent* state, including mock rows with consent given, that no client can produce. | `apps/frontend/src/screens/AdminScreen.tsx:164`, `apps/frontend/src/admin/mockReports.ts:8` | It is mock data behind a production gate, so no data is at risk, but a reader of the prototype screen would infer a consent flow that does not exist. | **No M.4 action.** Noted for the future real admin UI (`docs/CHECKLIST.md:23`). |
 | **C-9** | The privacy notice lists "Timing" among what a report contains but not among what the server stores. | `docs/PRIVACY.md:51` (against `docs/PRIVACY.md:169`) | Both statements are correct — timing is sent and is not stored (`docs/API.md:26`) — but a reader can carry "a report contains the timing" into "the server keeps the timing". | **No action required**; noted for T-01 if the notice is revised for C-3. |
 
