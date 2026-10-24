@@ -99,7 +99,7 @@ export default function NextStepScreen({ onSubmit, onBack }: Props) {
       </header>
 
       {/* Support Options Radiogroup */}
-      <div role="radiogroup" aria-label="How to handle your report" className="mt-6 flex flex-col gap-3">
+      <ul role="radiogroup" aria-label="How to handle your report" className="mt-6 flex flex-col gap-3">
         {STEPS.map((s, index) => {
           const selected = step === s.id
           const enabledIndices = STEPS.map((x, i) => (x.disabled ? -1 : i)).filter((i) => i >= 0)
@@ -144,7 +144,7 @@ export default function NextStepScreen({ onSubmit, onBack }: Props) {
             />
           )
         })}
-      </div>
+      </ul>
 
       {/* Immediate Support Resource Numbers (When 'support' chosen) */}
       {step === 'support' && (

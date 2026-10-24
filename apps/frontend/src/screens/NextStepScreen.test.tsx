@@ -64,4 +64,22 @@ describe('NextStepScreen failure banner', () => {
     render(<NextStepScreen onSubmit={vi.fn()} onBack={() => {}} />)
     expect(screen.queryByRole('alert')).toBeNull()
   })
+
+  // Regression guard: each support option must be a <li> inside the radiogroup
+  // list, never a loose <li> in a plain <div> (invalid HTML / fragile listboxes).
+  it('wraps every support option in a list item within the radiogroup', () => {
+    render(<NextStepScreen onSubmit={vi.fn()} onBack={() => {}} />)
+    const group = screen.getByRole('radiogroup', {
+      name: /how to handle your report/i,
+    })
+    expect(group.tagName).toBe('UL')
+
+    const radios = screen.getAllByRole('radio')
+    expect(radios).toHaveLength(4)
+    for (const radio of radios) {
+      const li = radio.closest('li')
+      expect(li).not.toBeNull()
+      expect(li?.closest('ul')).toBe(group)
+    }
+  })
 })

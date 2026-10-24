@@ -1,26 +1,26 @@
 import type { ReactNode } from 'react'
 import SafeHeader from './SafeHeader'
+import { shellMaxWidthClass, type ShellMaxWidth } from '../lib/layout'
 
 type ShellProps = {
   children: ReactNode
-  maxWidth?: 'default' | 'wide'
+  maxWidth?: ShellMaxWidth
 }
 
 // Shared page frame: accessible skip link + header + responsive layout column.
-// Default maxWidth is optimized for focused reporting forms (up to 640px).
-// 'wide' allows rich content (landing, map, dashboard) to breathe comfortably on tablets & desktop (up to 1024px).
+// The header receives the same maxWidth so its edge always tracks the content
+// edge (FR-11.4). Default maxWidth is optimized for focused reporting forms
+// (up to 640px). 'wide' lets rich content (landing, map, dashboard) breathe on
+// tablets & desktop (up to 1040px).
 export default function Shell({ children, maxWidth = 'default' }: ShellProps) {
-  const containerWidthClass =
-    maxWidth === 'wide'
-      ? 'max-w-[390px] md:max-w-[720px] lg:max-w-[960px] xl:max-w-[1040px]'
-      : 'max-w-[390px] md:max-w-[560px] lg:max-w-[640px]'
+  const containerWidthClass = shellMaxWidthClass(maxWidth)
 
   return (
     <div className="flex min-h-screen flex-col bg-[var(--color-canvas)] font-sans text-[var(--color-text-primary)]">
       <a href="#main-content" className="skip-link">
         Skip to main content
       </a>
-      <SafeHeader />
+      <SafeHeader maxWidth={maxWidth} />
       <main
         id="main-content"
         tabIndex={-1}
