@@ -1,0 +1,59 @@
+server {
+    listen 443 ssl http2;
+    server_name  app.zindika.app;  # REPLACE with your real domain or IP
+
+    # --- TLS (let's encrypt or similar) ---
+    ssl_certificate     /etc/ssl/certs/safesignal.pem;
+    ssl_certificate_key /etc/ssl/private/safesignal.key;
+    ssl_protocols       TLSv1.2 TLSv1.3;
+    ssl_ciphers         ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256;
+    ssl_prefer_server_ciphers on;
+
+    # --- Security headers (SR-6.1, SR-7.1, SR-9.1, SR-9.2) ---
+    add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
+    add_header X-Content-Type-Options  "nosniff" always;
+    add_header X-Frame-Options           "DENY" always;
+    add_header Referrer-Policy           "strict-origin-when-cross-origin" always;
+
+    # --- Static web build ---
+    root /var/www/safesignal;
+    index index.html;
+
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+
+    # --- API: FastAPI behind uvicorn (single worker) ---
+    # Proxy overwrites X-Forwarded-For so request.client.host is the real client
+    # (see the note at the top of apps/backend/ratelimit.py).
+    location /api/ {
+        proxy_pass http://127.0.0.1:8000;
+        proxy_set_header Host              $host;
+        proxy_set_header X-Real-IP         $remote_addr;
+        proxy_set_header X-Forwarded-For   $remote_addr;     # overwrite, not append
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_read_timeout 30s;
+        proxy_connect_timeout 5s;
+    }
+
+    # --- Assistant proxy ---
+    location /api/assistant/ {
+        proxy_pass http://127.0.0.1:8000;
+        proxy_set_header Host              $host;
+        proxy_set_header X-Forwarded-For   $remote_addr;
+        proxy_read_timeout 25s;   # matches assistant.TIMEOUT_SECONDS
+    }
+
+    # --- Health probe ---
+    location /health/ready {
+        proxy_pass http://127.0.0.1:8000/health/ready;
+        proxy_set_header Host $host;
+    }
+}
+
+# Redirect HTTP -> HTTPS
+server {
+    listen 80;
+    server_name app.zindika.app;  # REPLACE
+    return 301 https://$host$request_uri;
+}

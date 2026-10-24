@@ -28,12 +28,13 @@ Legend: `[x]` done with repository or test evidence; `[ ]` not done or unverifie
 - [x] Report and admin rate limiting (automated)
 - [x] Fail-closed admin authorisation (automated)
 - [x] Generic 503 on database failure (automated)
-- [x] Backend suite: 86 pass without a database (the PostgreSQL module skips, 1 expected failure from the M.4 scope check); 94 pass against a disposable `postgres:18` database, 0 skipped
+- [x] Backend suite: 107 pass without a database (the PostgreSQL module skips, 1 expected failure from the M.4 scope check); 115 pass against a disposable `postgres:18` database, 0 skipped
 - [x] Ruff clean (`ruff check .`)
 - [ ] Proxy-aware client identity configured and tested
 - [ ] Pagination for admin list
 - [ ] Remove or replace legacy `/analyze` stub
-- [ ] Production CORS origin configuration
+- [x] Production CORS origin configuration (`SAFESIGNAL_CORS_ORIGINS`)
+- [x] Security response headers (HSTS, CSP, X-Content-Type-Options, X-Frame-Options, Referrer-Policy)
 
 ## 4. PostgreSQL
 - [x] Schema and versioned migration (`001_init.sql`), explicit `migrate.py` (automated, local PG 18)
@@ -48,7 +49,7 @@ Legend: `[x]` done with repository or test evidence; `[ ]` not done or unverifie
 
 ## 5. Security and privacy
 - [x] Controls listed in [SECURITY.md](SECURITY.md) implemented
-- [ ] Reverse proxy and TLS
+- [ ] Reverse proxy and TLS (deployment template prepared; not yet deployed)
 - [ ] Rate limiting that survives restarts or multiple workers
 - [ ] Dependency and secret scanning
 - [ ] Data Protection Act review for real reports
@@ -110,10 +111,10 @@ Legend: `[x]` done with repository or test evidence; `[ ]` not done or unverifie
 
 ## 10. VPS deployment
 - [ ] Server provisioned and hardened
-- [ ] PostgreSQL installed, roles and backups configured
+- [ ] PostgreSQL installed (or Neon provisioned), roles and backups configured
 - [ ] Backend as a service, single worker, readiness monitored
 - [ ] Reverse proxy, TLS, trusted forwarded headers
-- [ ] Production environment variables set (admin key, database, OpenRouter)
+- [ ] Production environment variables set (admin key, database, OpenRouter, CORS origins)
 - [ ] Web build served with `VITE_PROTOTYPE=false`
 
 ## 11. Documentation
